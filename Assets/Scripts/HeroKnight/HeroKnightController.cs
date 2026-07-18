@@ -28,6 +28,7 @@ namespace HeroKnightSandbox
         public FallState Fall { get; private set; }
         public WallSlideState WallSlide { get; private set; }
         public LedgeGrabState LedgeGrab { get; private set; }
+        public RollState Roll { get; private set; }
 
         private void Awake()
         {
@@ -53,6 +54,7 @@ namespace HeroKnightSandbox
             Fall = new FallState(this, context);
             WallSlide = new WallSlideState(this, context);
             LedgeGrab = new LedgeGrabState(this, context);
+            Roll = new RollState(this, context);
         }
 
         private void Start()

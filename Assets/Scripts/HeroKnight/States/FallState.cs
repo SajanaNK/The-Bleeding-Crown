@@ -11,6 +11,12 @@ namespace HeroKnightSandbox.States
             Context.UpdateFacing();
             Context.Animator.SetFloat("AirSpeedY", Context.Body.velocity.y);
 
+            if (Context.Controls.RollPressed)
+            {
+                Controller.ChangeState(Controller.Roll);
+                return;
+            }
+
             if (Context.IsGrounded)
             {
                 Context.Animator.SetBool("Grounded", true);
