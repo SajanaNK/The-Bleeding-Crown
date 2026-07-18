@@ -15,33 +15,8 @@ namespace HeroKnightSandbox.States
         {
             Context.UpdateFacing();
 
-            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > Context.AttackComboWindow)
+            if (TryGroundedActionTransitions())
             {
-                Controller.ChangeState(Controller.Attack);
-                return;
-            }
-
-            if (Context.Controls.BlockHeld)
-            {
-                Controller.ChangeState(Controller.Block);
-                return;
-            }
-
-            if (Context.Controls.RollPressed)
-            {
-                Controller.ChangeState(Controller.Roll);
-                return;
-            }
-
-            if (!Context.IsGrounded)
-            {
-                Controller.ChangeState(Controller.Fall);
-                return;
-            }
-
-            if (Context.Controls.JumpPressed)
-            {
-                Controller.ChangeState(Controller.Jump);
                 return;
             }
 

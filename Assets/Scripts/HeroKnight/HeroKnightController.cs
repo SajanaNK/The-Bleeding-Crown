@@ -69,6 +69,7 @@ namespace HeroKnightSandbox
         private void Update()
         {
             context.TimeSinceAttack += Time.deltaTime;
+            context.Animator.SetBool("Grounded", context.IsGrounded);
             currentState.Tick();
         }
 

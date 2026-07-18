@@ -1,4 +1,3 @@
-// Assets/Scripts/HeroKnight/States/LedgeGrabState.cs
 using UnityEngine;
 
 namespace HeroKnightSandbox.States
@@ -22,6 +21,12 @@ namespace HeroKnightSandbox.States
 
         public override void Enter()
         {
+            bool rightLedge = Context.WallSensorR1.State() && Context.WallSensorR2.State() && !Context.LedgeSensorR.State();
+            float snappedX = rightLedge
+                ? Context.WallSensorR2.transform.position.x
+                : Context.WallSensorL2.transform.position.x;
+            Context.Transform.position = new Vector3(snappedX, Context.Transform.position.y, Context.Transform.position.z);
+
             Context.Body.bodyType = RigidbodyType2D.Kinematic;
             Context.Body.velocity = Vector2.zero;
             Context.Animator.SetTrigger("LedgeGrab");
@@ -47,8 +52,10 @@ namespace HeroKnightSandbox.States
 
             if (Context.Controls.RollPressed)
             {
-                Context.LedgeSensorR.Disable(RegrabCooldown);
-                Context.LedgeSensorL.Disable(RegrabCooldown);
+                Context.WallSensorR1.Disable(RegrabCooldown);
+                Context.WallSensorR2.Disable(RegrabCooldown);
+                Context.WallSensorL1.Disable(RegrabCooldown);
+                Context.WallSensorL2.Disable(RegrabCooldown);
                 Controller.ChangeState(Controller.Fall);
             }
         }

@@ -23,6 +23,11 @@ namespace HeroKnightSandbox.UI
 
         public void OnDrag(PointerEventData eventData)
         {
+            if (background == null || handle == null)
+            {
+                return;
+            }
+
             Vector2 localPoint;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 background, eventData.position, eventData.pressEventCamera, out localPoint))

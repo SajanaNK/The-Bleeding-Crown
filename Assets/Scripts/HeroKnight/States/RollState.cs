@@ -1,4 +1,3 @@
-// Assets/Scripts/HeroKnight/States/RollState.cs
 using UnityEngine;
 
 namespace HeroKnightSandbox.States

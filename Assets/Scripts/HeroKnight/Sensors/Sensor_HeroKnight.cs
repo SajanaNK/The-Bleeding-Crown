@@ -2,6 +2,8 @@ using UnityEngine;
 
 namespace HeroKnightSandbox.Sensors
 {
+    // Verbatim namespaced copy of the vendor demo's Sensor_HeroKnight — field naming
+    // (m_ prefixes) intentionally matches the original rather than this project's style.
     public class Sensor_HeroKnight : MonoBehaviour
     {
         private int m_ColCount = 0;
