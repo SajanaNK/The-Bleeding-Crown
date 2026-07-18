@@ -1304,7 +1304,7 @@ git commit -m "feat(hero-knight): add block state"
 - Modify: `Assets/Scripts/HeroKnight/States/RunState.cs`
 
 **Interfaces:**
-- Produces: `HeroKnightContext.TimeSinceAttack`/`.ComboCount`. `HeroKnightController.Attack` (type `PlayerState`).
+- Produces: `HeroKnightContext.TimeSinceAttack`/`.ComboCount`/`.AttackComboWindow`/`.AttackComboResetWindow`. `HeroKnightController.Attack` (type `PlayerState`).
 
 - [ ] **Step 1: Add fields to HeroKnightContext**
 
@@ -1313,6 +1313,8 @@ In `Assets/Scripts/HeroKnight/HeroKnightContext.cs`, add below the existing `Rol
 ```csharp
         public float TimeSinceAttack = 0f;
         public int ComboCount = 0;
+        public float AttackComboWindow = 0.25f;
+        public float AttackComboResetWindow = 1.0f;
 ```
 
 - [ ] **Step 2: Write AttackState**
@@ -1336,7 +1338,7 @@ namespace HeroKnight.States
             Context.SetVelocityX(0f);
 
             Context.ComboCount++;
-            if (Context.ComboCount > 3 || Context.TimeSinceAttack > 1.0f)
+            if (Context.ComboCount > 3 || Context.TimeSinceAttack > Context.AttackComboResetWindow)
             {
                 Context.ComboCount = 1;
             }
@@ -1347,7 +1349,7 @@ namespace HeroKnight.States
 
         public override void Tick()
         {
-            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > 0.25f)
+            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > Context.AttackComboWindow)
             {
                 Controller.ChangeState(Controller.Attack);
                 return;
@@ -1393,7 +1395,7 @@ In `Update()`, add the timer increment before `currentState.Tick();`:
 In `Assets/Scripts/HeroKnight/States/IdleState.cs`, insert this check as the new first check in `Tick()`, above the `BlockHeld` check:
 
 ```csharp
-            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > 0.25f)
+            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > Context.AttackComboWindow)
             {
                 Controller.ChangeState(Controller.Attack);
                 return;
@@ -1407,7 +1409,7 @@ The full `Tick()` method should now read:
         {
             Context.UpdateFacing();
 
-            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > 0.25f)
+            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > Context.AttackComboWindow)
             {
                 Controller.ChangeState(Controller.Attack);
                 return;
