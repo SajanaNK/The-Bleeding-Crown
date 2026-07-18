@@ -35,7 +35,10 @@ namespace HeroKnightSandbox.UI
 
         public void OnPointerUp(PointerEventData eventData)
         {
-            handle.anchoredPosition = Vector2.zero;
+            if (handle != null)
+            {
+                handle.anchoredPosition = Vector2.zero;
+            }
             Direction = Vector2.zero;
         }
     }
