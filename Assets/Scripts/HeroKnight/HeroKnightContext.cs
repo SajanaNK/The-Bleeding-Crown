@@ -21,9 +21,12 @@ namespace HeroKnightSandbox
         public Sensor_HeroKnight WallSensorR2;
         public Sensor_HeroKnight WallSensorL1;
         public Sensor_HeroKnight WallSensorL2;
+        public Sensor_HeroKnight LedgeSensorR;
+        public Sensor_HeroKnight LedgeSensorL;
 
         public float MoveSpeed = 4.0f;
         public float JumpForce = 7.5f;
+        public Vector2 LedgeClimbOffset = new Vector2(0.3f, 1.1f);
         public int FacingDirection = 1;
 
         public bool IsGrounded => GroundSensor.State();

@@ -26,6 +26,12 @@ namespace HeroKnightSandbox.States
                 return;
             }
 
+            if (LedgeGrabState.CanGrab(Context))
+            {
+                Controller.ChangeState(Controller.LedgeGrab);
+                return;
+            }
+
             if (!Context.IsWallSliding)
             {
                 Controller.ChangeState(Controller.Fall);
