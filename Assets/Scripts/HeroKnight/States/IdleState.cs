@@ -16,6 +16,12 @@ namespace HeroKnightSandbox.States
         {
             Context.UpdateFacing();
 
+            if (Context.Controls.AttackPressed && Context.TimeSinceAttack > Context.AttackComboWindow)
+            {
+                Controller.ChangeState(Controller.Attack);
+                return;
+            }
+
             if (Context.Controls.BlockHeld)
             {
                 Controller.ChangeState(Controller.Block);

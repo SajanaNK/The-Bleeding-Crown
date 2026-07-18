@@ -30,6 +30,7 @@ namespace HeroKnightSandbox
         public LedgeGrabState LedgeGrab { get; private set; }
         public RollState Roll { get; private set; }
         public BlockState Block { get; private set; }
+        public AttackState Attack { get; private set; }
 
         private void Awake()
         {
@@ -57,6 +58,7 @@ namespace HeroKnightSandbox
             LedgeGrab = new LedgeGrabState(this, context);
             Roll = new RollState(this, context);
             Block = new BlockState(this, context);
+            Attack = new AttackState(this, context);
         }
 
         private void Start()
@@ -66,6 +68,7 @@ namespace HeroKnightSandbox
 
         private void Update()
         {
+            context.TimeSinceAttack += Time.deltaTime;
             currentState.Tick();
         }
 

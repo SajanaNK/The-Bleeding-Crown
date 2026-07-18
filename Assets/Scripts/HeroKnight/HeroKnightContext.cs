@@ -29,6 +29,10 @@ namespace HeroKnightSandbox
         public Vector2 LedgeClimbOffset = new Vector2(0.3f, 1.1f);
         public float RollForce = 6.0f;
         public float RollDuration = 8.0f / 14.0f;
+        public float TimeSinceAttack = 0f;
+        public int ComboCount = 0;
+        public float AttackComboWindow = 0.25f;
+        public float AttackComboResetWindow = 1.0f;
         public int FacingDirection = 1;
 
         public bool IsGrounded => GroundSensor.State();
