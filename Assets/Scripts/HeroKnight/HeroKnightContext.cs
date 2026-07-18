@@ -30,6 +30,7 @@ namespace HeroKnightSandbox
         public float MoveSpeed = 4.0f;
         public float JumpForce = 7.5f;
         public Vector2 LedgeClimbOffset = new Vector2(0.3f, 1.6f);
+        public float LedgeHangOffset = 0.3f;
         public float RollForce = 6.0f;
         public float RollDuration = 8.0f / 14.0f;
         public float TimeSinceAttack = 0f;
