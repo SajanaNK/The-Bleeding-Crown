@@ -26,7 +26,7 @@ The goal of this project is a **movement/combat sandbox**: get the Hero Knight c
 
 New code lives in its own namespace/folder — `HeroKnight`, under `Assets/Scripts/HeroKnight/` — kept separate from the template's `Platformer.*` namespaces since it intentionally doesn't use the `Simulation` event framework.
 
-```
+```text
 Assets/Scripts/HeroKnight/
   HeroKnightController.cs      // MonoBehaviour: owns Rigidbody2D, Animator, sensors, runs the state machine
   HeroKnightContext.cs         // shared mutable data passed between states (facing dir, combo count, timers, sensor refs, input ref)
