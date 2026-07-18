@@ -11,13 +11,21 @@ namespace HeroKnightSandbox
     public class HeroKnightController : MonoBehaviour
     {
         [SerializeField] private TouchHeroKnightInput input;
-        [SerializeField] private Sensor_HeroKnight groundSensor;
-        [SerializeField] private Sensor_HeroKnight wallSensorR1;
-        [SerializeField] private Sensor_HeroKnight wallSensorR2;
-        [SerializeField] private Sensor_HeroKnight wallSensorL1;
-        [SerializeField] private Sensor_HeroKnight wallSensorL2;
-        [SerializeField] private Sensor_HeroKnight ledgeSensorR;
-        [SerializeField] private Sensor_HeroKnight ledgeSensorL;
+        // Fully qualified rather than relying on the `using HeroKnightSandbox.Sensors;`
+        // import above: the vendor asset pack's Demo/Sensor_HeroKnight.cs declares a
+        // same-named class directly in the global namespace, and C# always resolves a
+        // bare type name against an enclosing namespace's own global-scope declarations
+        // before it ever considers a `using` import for that name. An unqualified
+        // `Sensor_HeroKnight` here silently binds to the vendor's class instead of ours
+        // -- no compile error, just a field of the wrong type that later refuses any
+        // SerializedProperty assignment of our actual sensor component.
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight groundSensor;
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight wallSensorR1;
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight wallSensorR2;
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight wallSensorL1;
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight wallSensorL2;
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight ledgeSensorR;
+        [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight ledgeSensorL;
 
         private HeroKnightContext context;
         private PlayerState currentState;

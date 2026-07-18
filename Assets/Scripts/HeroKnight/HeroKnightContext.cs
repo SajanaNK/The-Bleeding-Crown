@@ -16,17 +16,20 @@ namespace HeroKnightSandbox
         public Transform Transform;
         public IHeroKnightInput Controls;
 
-        public Sensor_HeroKnight GroundSensor;
-        public Sensor_HeroKnight WallSensorR1;
-        public Sensor_HeroKnight WallSensorR2;
-        public Sensor_HeroKnight WallSensorL1;
-        public Sensor_HeroKnight WallSensorL2;
-        public Sensor_HeroKnight LedgeSensorR;
-        public Sensor_HeroKnight LedgeSensorL;
+        // Fully qualified: see the matching comment in HeroKnightController.cs — the
+        // vendor's global-scope Sensor_HeroKnight class shadows the `using
+        // HeroKnightSandbox.Sensors;` import above for any bare reference here.
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight GroundSensor;
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight WallSensorR1;
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight WallSensorR2;
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight WallSensorL1;
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight WallSensorL2;
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight LedgeSensorR;
+        public HeroKnightSandbox.Sensors.Sensor_HeroKnight LedgeSensorL;
 
         public float MoveSpeed = 4.0f;
         public float JumpForce = 7.5f;
-        public Vector2 LedgeClimbOffset = new Vector2(0.3f, 1.1f);
+        public Vector2 LedgeClimbOffset = new Vector2(0.3f, 1.6f);
         public float RollForce = 6.0f;
         public float RollDuration = 8.0f / 14.0f;
         public float TimeSinceAttack = 0f;
