@@ -1,5 +1,11 @@
 # Hero Knight Sandbox — Session Handoff (2026-07-18)
 
+> **PROJECT COMPLETE.** All 12 tasks (design, implementation, scene/prefab/Animator
+> assembly, and full playtest/tuning) are done, verified in-editor, and committed.
+> This file is kept as a historical record of the debugging journey — there is no
+> outstanding work to resume. See "Round 13 — Final playtest (Task 12) and project
+> close-out" at the bottom for the final status.
+
 > Read this file first in a new session, then say: **"Read docs/superpowers/status/2026-07-18-hero-knight-sandbox-handoff.md and continue from there."**
 > That's the whole resume procedure — no other file needs to be read up front. Point at the exact commands below rather than re-deriving them.
 
@@ -17,26 +23,22 @@ branch `hero-knight-sandbox` (no worktree).
 
 ## Status at a glance
 
-- **Tasks 1–10 (all C# code): reviewed and merged as of commit `b621054`, but
-  four of those files have SINCE been modified again this session (rounds
-  1–6 below) and are currently UNCOMMITTED.** Branch `hero-knight-sandbox`.
-  Modified-but-uncommitted: `Assets/Scripts/HeroKnight/HeroKnightContext.cs`,
-  `HeroKnightController.cs`, `Sensors/Sensor_HeroKnight.cs`,
-  `States/LedgeGrabState.cs` — all real bug fixes discovered during live
-  Task 11/12 playtesting (namespace shadowing, a trigger-filter bug, a
-  climb-direction bug), not scope creep. Do not re-open these further unless
-  new evidence surfaces; do not revert them.
-- **Task 11 (manual scene/prefab/Animator assembly): FUNCTIONALLY DONE,
-  NOT YET COMMITTED.** Built via a custom Unity Editor automation script
+- **Tasks 1–10 (all C# code): DONE AND COMMITTED.** Original review/merge at
+  `b621054`; further bug fixes found during live playtesting (namespace
+  shadowing, a trigger-filter bug, a climb-direction bug, ledge hang-position/
+  re-grab-loop fixes) committed in `20605f7` and `09e3853`.
+- **Task 11 (manual scene/prefab/Animator assembly): DONE AND COMMITTED.**
+  Built via a custom Unity Editor automation script
   (`Assets/Editor/HeroKnightSandboxSetup.cs`, menu `HeroKnightSandbox > ...`)
   because the user's own Editor is open interactively, so batch-mode execution
-  isn't available — the user runs each menu item themselves and reports back
+  isn't available — the user ran each menu item themselves and reported back
   Console output / screenshots, since the agent cannot see the Editor directly.
   Every state (Idle/Run/Jump/Fall/WallSlide/LedgeGrab, Roll/Block/Attack, UI,
-  camera, terrain) is now confirmed working in-game (see Round 6 below). What
-  remains is cleanup (remove the temporary debug overlay) and committing
-  everything — see "Known follow-up items" below.
-- **Task 12 (full playtest/tuning): NOT STARTED.** Blocked on Task 11 finishing.
+  camera, terrain) is confirmed working in-game. Committed in `21620ed` and
+  `f62a898`.
+- **Task 12 (full playtest/tuning): DONE.** Every transition in the design's
+  testing checklist was exercised and confirmed correct with no further
+  tuning needed. See Round 13 below. No commit required (no values changed).
 
 ## Uncommitted working-tree state right now
 
@@ -599,31 +601,21 @@ ledge-grab (grab/hang position/climb/drop) as fully correct — all of Task 11
 and the Task-12-adjacent polish items found during this session's playtesting
 are done.
 
-## Known follow-up items (do these once wall-slide/ledge-grab are confirmed)
+## Known follow-up items — ALL DONE
 
-1. **Remove the temporary debug overlay.** In
-   `Assets/Scripts/HeroKnight/HeroKnightController.cs`, delete the `OnGUI()`
-   method (currently the last method in the class, clearly marked
-   `// TEMPORARY debug overlay for diagnosing wall-sensor detection -- remove
-   once wall-slide/ledge-grab are confirmed working in the sandbox.`). Do not
-   commit this method.
+1. ~~Remove the temporary debug overlay~~ **DONE.** Removed from
+   `HeroKnightController.cs` before the final commits; not present in
+   committed code.
 2. ~~Finish verifying the rest of Task 11~~ **DONE (round 6):** wall-slide and
-   ledge-grab (grab/climb/drop) are now confirmed working, joining the
+   ledge-grab (grab/climb/drop) confirmed working, joining the
    already-confirmed jump/attack/block/roll. All of Task 11's runtime-behavior
-   verification is complete. The only still-unverified detail is whether the
-   Animator's `LedgeGrab` *visual clip* itself looks right (vs. just the state
-   machine being in the right logical state) — worth a glance during Task 12,
-   not a blocker.
-3. Commit Task 11's output per the plan's own instructions (script + generated
-   prefab/scene/sprite + Animator Controller changes + ProjectSettings diffs).
-   Remember `.meta` files for every new asset (project convention — see
-   root `CLAUDE.md` / `AGENTS.md`).
-4. Move on to **Task 12**: full playtest and tuning. Exercise every state per
-   the design's testing checklist — Idle→Run→Jump→Fall→WallSlide→LedgeGrab→
-   Idle/Fall, Roll, Block, 3-hit Attack combo, and mutual exclusivity between
-   them — tuning feel values (`HeroKnightContext` fields: `MoveSpeed`,
-   `JumpForce`, `LedgeClimbOffset`, `RollForce`, `RollDuration`,
-   `AttackComboWindow`, `AttackComboResetWindow`) as needed.
+   verification is complete, including the Animator's `LedgeGrab` visual clip
+   (round 10).
+3. ~~Commit Task 11's output~~ **DONE.** Committed across `21620ed` (initial
+   scene/prefab/Animator assembly) and `f62a898` (animator exit fix +
+   collider/sorting polish).
+4. ~~Move on to Task 12~~ **DONE (round 13).** Full playtest confirmed every
+   transition works correctly with no tuning needed.
 
 ## Already confirmed working (earlier in this session, before the wall bug)
 
@@ -664,6 +656,47 @@ are done.
 | Generated ground sprite (uncommitted) | `Assets/Prefabs/GroundSprite.png` |
 | Vendor source prefab (read-only reference) | `Assets/Hero Knight - Pixel Art/Demo/HeroKnight.prefab` |
 | Vendor's colliding global class (do not edit) | `Assets/Hero Knight - Pixel Art/Demo/Sensor_HeroKnight.cs` |
+
+## Round 13 — Final playtest (Task 12) and project close-out
+
+With Task 11 fully committed (`09e3853`, `f62a898`), ran Task 12's full
+playtest checklist from `docs/superpowers/plans/2026-07-18-hero-knight-sandbox.md`
+(the "Task 12: Full playtest and tuning" section). Every transition was
+exercised directly by the user in Play mode and confirmed correct:
+
+- Idle → Run (joystick drag, facing flip, release → Idle): confirmed.
+- Run/Idle → Jump → Fall, lands back into the correct state: confirmed.
+- Fall → WallSlide → Fall, WallSlide/Fall → LedgeGrab → Idle (climb),
+  LedgeGrab → Fall (drop): already confirmed in rounds 3–12 above.
+- Roll (from Idle, from Run, mid-air; ignores input mid-roll; correct
+  post-roll state): confirmed.
+- Block (stops movement, holds pose, ignores other inputs while held,
+  releases into Run/Idle correctly): confirmed.
+- Attack combo (Attack1→2→3 in sequence, resets after 1.0s gap, returns to
+  Run/Idle after a single attack): confirmed.
+- Mutual exclusivity (no action interrupts Attack/Block/Roll early): confirmed.
+- Overall feel (move speed, jump height, roll distance/duration, attack
+  pacing): user reported everything felt good — **no tuning changes made**,
+  so per the plan's own instructions, no commit was needed for this task.
+
+**Project status: COMPLETE.** All 12 tasks in the implementation plan are
+done, verified live in the Unity Editor, and committed. Working tree is
+clean (`git status --porcelain=v1 -uall` empty). Final commit lineage for
+this feature:
+
+```
+f62a898 fix(hero-knight): fix ledge-grab animator exit and Task 12 collider/sorting polish
+09e3853 fix(hero-knight): fix ledge-grab hang position, climb re-grab loop, and drop/climb animator sync
+21620ed feat(hero-knight): assemble Task 11 sandbox scene, prefab, and Animator
+20605f7 fix(hero-knight): resolve sensor namespace shadowing, camera-bounds trigger leak, and ledge-climb direction
+b621054 fix(hero-knight): address final-review findings
+```
+
+No further action is required on the Hero Knight Sandbox character
+controller unless new feature work is requested (e.g. enemies, levels,
+integrating this controller with the template's `Platformer.*`/`Simulation`
+framework, additional combat mechanics) — none of that was in scope for this
+plan.
 
 ## How the user drives testing
 
