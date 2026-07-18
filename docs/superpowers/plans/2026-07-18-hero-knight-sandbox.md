@@ -22,6 +22,7 @@
   ```
 
   Expected: the `grep` produces no output (no `error CS` lines). This can take 1–3 minutes per run. **The Unity Editor GUI must be closed first** — a second instance cannot open the same project and the batch run will fail to acquire the project lock.
+- Every new `.cs` file gets a paired `.meta` file from Unity on the next compile/import (visible as untracked after the compile-check step) — `git add` it alongside its `.cs` file in the same commit (all `git add` commands below already list both). Missing `.meta` files are a git-hygiene gap, not a compile error, so the compile-check alone won't catch it — check `git status` before committing if unsure.
 - **Tasks 11 and 12 require the Unity Editor GUI (scene/prefab/Canvas layout, Tilemap painting, Animator Controller graph editing) and must be performed by a human.** No Unity MCP/editor-automation tool is available in this environment for an agent to drive the Editor directly — do not attempt to hand-edit `.unity`/`.prefab`/`.controller` YAML to fake this, it's too fragile. Tasks 1–10 (all C# code) can be done by an agentic worker.
 
 ---
@@ -774,7 +775,7 @@ Run the Global Constraints compile-check command. Expected: no `error CS` lines.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add "Assets/Scripts/HeroKnight/States/JumpState.cs" "Assets/Scripts/HeroKnight/States/FallState.cs" "Assets/Scripts/HeroKnight/States/WallSlideState.cs" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs"
+git add "Assets/Scripts/HeroKnight/States/JumpState.cs" "Assets/Scripts/HeroKnight/States/JumpState.cs.meta" "Assets/Scripts/HeroKnight/States/FallState.cs" "Assets/Scripts/HeroKnight/States/FallState.cs.meta" "Assets/Scripts/HeroKnight/States/WallSlideState.cs" "Assets/Scripts/HeroKnight/States/WallSlideState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs"
 git commit -m "feat(hero-knight): add jump, fall, and wall-slide states"
 ```
 
@@ -966,7 +967,7 @@ Run the Global Constraints compile-check command. Expected: no `error CS` lines.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add "Assets/Scripts/HeroKnight/States/LedgeGrabState.cs" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/FallState.cs" "Assets/Scripts/HeroKnight/States/WallSlideState.cs"
+git add "Assets/Scripts/HeroKnight/States/LedgeGrabState.cs" "Assets/Scripts/HeroKnight/States/LedgeGrabState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/FallState.cs" "Assets/Scripts/HeroKnight/States/WallSlideState.cs"
 git commit -m "feat(hero-knight): add ledge-grab state and detection"
 ```
 
@@ -1161,7 +1162,7 @@ Run the Global Constraints compile-check command. Expected: no `error CS` lines.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "Assets/Scripts/HeroKnight/States/RollState.cs" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs" "Assets/Scripts/HeroKnight/States/FallState.cs"
+git add "Assets/Scripts/HeroKnight/States/RollState.cs" "Assets/Scripts/HeroKnight/States/RollState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs" "Assets/Scripts/HeroKnight/States/FallState.cs"
 git commit -m "feat(hero-knight): add roll state"
 ```
 
@@ -1288,7 +1289,7 @@ Run the Global Constraints compile-check command. Expected: no `error CS` lines.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Assets/Scripts/HeroKnight/States/BlockState.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs"
+git add "Assets/Scripts/HeroKnight/States/BlockState.cs" "Assets/Scripts/HeroKnight/States/BlockState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs"
 git commit -m "feat(hero-knight): add block state"
 ```
 
@@ -1455,7 +1456,7 @@ Run the Global Constraints compile-check command. Expected: no `error CS` lines.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "Assets/Scripts/HeroKnight/States/AttackState.cs" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs"
+git add "Assets/Scripts/HeroKnight/States/AttackState.cs" "Assets/Scripts/HeroKnight/States/AttackState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/HeroKnightController.cs" "Assets/Scripts/HeroKnight/States/IdleState.cs" "Assets/Scripts/HeroKnight/States/RunState.cs"
 git commit -m "feat(hero-knight): add attack combo state"
 ```
 
