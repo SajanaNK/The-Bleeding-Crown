@@ -16,6 +16,12 @@ namespace HeroKnightSandbox.States
         {
             Context.UpdateFacing();
 
+            if (Context.Controls.BlockHeld)
+            {
+                Controller.ChangeState(Controller.Block);
+                return;
+            }
+
             if (Context.Controls.RollPressed)
             {
                 Controller.ChangeState(Controller.Roll);
