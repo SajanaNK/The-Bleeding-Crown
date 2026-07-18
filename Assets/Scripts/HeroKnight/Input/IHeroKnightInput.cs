@@ -1,4 +1,4 @@
-namespace HeroKnight.Input
+namespace HeroKnightSandbox.Input
 {
     /// <summary>
     /// Abstracts the Hero Knight's control source. Movement/combat states read only

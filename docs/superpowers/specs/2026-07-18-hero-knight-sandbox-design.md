@@ -24,7 +24,7 @@ The goal of this project is a **movement/combat sandbox**: get the Hero Knight c
 
 ## Architecture & file layout
 
-New code lives in its own namespace/folder — `HeroKnight`, under `Assets/Scripts/HeroKnight/` — kept separate from the template's `Platformer.*` namespaces since it intentionally doesn't use the `Simulation` event framework.
+New code lives in its own namespace, `HeroKnightSandbox`, under the folder `Assets/Scripts/HeroKnight/` — kept separate from the template's `Platformer.*` namespaces since it intentionally doesn't use the `Simulation` event framework. The namespace can't simply be `HeroKnight`: the asset pack's own demo script declares a global-scope `class HeroKnight`, and a C# namespace can't share a name with a type already occupying that slot in the same scope (`CS0101`) — discovered when Task 1's implementer hit this collision against `Assets/Hero Knight - Pixel Art/Demo/HeroKnight.cs`.
 
 ```text
 Assets/Scripts/HeroKnight/

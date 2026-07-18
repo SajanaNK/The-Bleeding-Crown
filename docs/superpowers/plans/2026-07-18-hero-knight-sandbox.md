@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Unity Editor version: `2022.3.41f1` (must match `ProjectSettings/ProjectVersion.txt`).
-- New code lives under `Assets/Scripts/HeroKnight/`, namespaced `HeroKnight.*` — kept separate from `Platformer.*` per the design's explicit non-goal of integrating with `Simulation`.
+- New code lives under `Assets/Scripts/HeroKnight/`, namespaced `HeroKnightSandbox.*` — kept separate from `Platformer.*` per the design's explicit non-goal of integrating with `Simulation`.
 - No Input System package is installed — touch input uses `UnityEngine.EventSystems` UI interfaces (`IPointerDownHandler` etc.), not `Input.*`.
 - No automated test framework tasks — this project has no NUnit tests set up (confirmed in `CLAUDE.md`) and the design's Non-goals explicitly exclude adding one. Verification is: (a) a Unity batch-mode compile check for every code task, and (b) manual in-editor playtesting once the scene exists (Tasks 11–12).
 - Compile-check command (used after every code task in Tasks 1–10):
@@ -32,12 +32,12 @@
 - Create: `Assets/Scripts/HeroKnight/Input/IHeroKnightInput.cs`
 
 **Interfaces:**
-- Produces: `HeroKnight.Input.IHeroKnightInput` with members `float MoveX`, `bool JumpPressed`, `bool AttackPressed`, `bool BlockHeld`, `bool RollPressed`.
+- Produces: `HeroKnightSandbox.Input.IHeroKnightInput` with members `float MoveX`, `bool JumpPressed`, `bool AttackPressed`, `bool BlockHeld`, `bool RollPressed`.
 
 - [ ] **Step 1: Write the interface**
 
 ```csharp
-namespace HeroKnight.Input
+namespace HeroKnightSandbox.Input
 {
     /// <summary>
     /// Abstracts the Hero Knight's control source. Movement/combat states read only
@@ -75,8 +75,8 @@ git commit -m "feat(hero-knight): add IHeroKnightInput contract"
 - Create: `Assets/Scripts/HeroKnight/UI/TouchButton.cs`
 
 **Interfaces:**
-- Produces: `HeroKnight.UI.VirtualJoystick` with `Vector2 Direction { get; }` (normalized, `.x` in `[-1, 1]`), and serialized fields `background`/`handle`/`handleRange` (assigned in the Editor in Task 11).
-- Produces: `HeroKnight.UI.TouchButton` with `bool IsHeld { get; }` (true while pressed) and `bool WasPressedThisFrame { get; }` (true for exactly one frame on press) — the same component serves one-shot buttons (Jump/Attack/Roll use `WasPressedThisFrame`) and the hold button (Block uses `IsHeld`).
+- Produces: `HeroKnightSandbox.UI.VirtualJoystick` with `Vector2 Direction { get; }` (normalized, `.x` in `[-1, 1]`), and serialized fields `background`/`handle`/`handleRange` (assigned in the Editor in Task 11).
+- Produces: `HeroKnightSandbox.UI.TouchButton` with `bool IsHeld { get; }` (true while pressed) and `bool WasPressedThisFrame { get; }` (true for exactly one frame on press) — the same component serves one-shot buttons (Jump/Attack/Roll use `WasPressedThisFrame`) and the hold button (Block uses `IsHeld`).
 
 - [ ] **Step 1: Write VirtualJoystick**
 
@@ -84,7 +84,7 @@ git commit -m "feat(hero-knight): add IHeroKnightInput contract"
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace HeroKnight.UI
+namespace HeroKnightSandbox.UI
 {
     /// <summary>
     /// Drag-based on-screen joystick. Drag anywhere on `background`; the `handle`
@@ -131,7 +131,7 @@ namespace HeroKnight.UI
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace HeroKnight.UI
+namespace HeroKnightSandbox.UI
 {
     /// <summary>
     /// One-shot press (WasPressedThisFrame) and press-and-hold (IsHeld) in a single
@@ -181,16 +181,16 @@ git commit -m "feat(hero-knight): add virtual joystick and touch button UI primi
 - Create: `Assets/Scripts/HeroKnight/Input/TouchHeroKnightInput.cs`
 
 **Interfaces:**
-- Consumes: `HeroKnight.UI.VirtualJoystick.Direction`, `HeroKnight.UI.TouchButton.IsHeld`/`WasPressedThisFrame` (Task 2); implements `HeroKnight.Input.IHeroKnightInput` (Task 1).
-- Produces: `HeroKnight.Input.TouchHeroKnightInput`, a `MonoBehaviour` with serialized fields `joystick`, `jumpButton`, `attackButton`, `blockButton`, `rollButton` (assigned in the Editor in Task 11).
+- Consumes: `HeroKnightSandbox.UI.VirtualJoystick.Direction`, `HeroKnightSandbox.UI.TouchButton.IsHeld`/`WasPressedThisFrame` (Task 2); implements `HeroKnightSandbox.Input.IHeroKnightInput` (Task 1).
+- Produces: `HeroKnightSandbox.Input.TouchHeroKnightInput`, a `MonoBehaviour` with serialized fields `joystick`, `jumpButton`, `attackButton`, `blockButton`, `rollButton` (assigned in the Editor in Task 11).
 
 - [ ] **Step 1: Write TouchHeroKnightInput**
 
 ```csharp
-using HeroKnight.UI;
+using HeroKnightSandbox.UI;
 using UnityEngine;
 
-namespace HeroKnight.Input
+namespace HeroKnightSandbox.Input
 {
     public class TouchHeroKnightInput : MonoBehaviour, IHeroKnightInput
     {
@@ -228,7 +228,7 @@ git commit -m "feat(hero-knight): add touch input adapter"
 - Create: `Assets/Scripts/HeroKnight/Sensors/Sensor_HeroKnight.cs`
 
 **Interfaces:**
-- Produces: `HeroKnight.Sensors.Sensor_HeroKnight` with `bool State()` (true while a trigger collider overlaps it and it isn't disabled) and `void Disable(float duration)`.
+- Produces: `HeroKnightSandbox.Sensors.Sensor_HeroKnight` with `bool State()` (true while a trigger collider overlaps it and it isn't disabled) and `void Disable(float duration)`.
 
 - [ ] **Step 1: Write the sensor**
 
@@ -237,7 +237,7 @@ This is our own copy of the asset pack's `Sensor_HeroKnight.cs` (`Assets/Hero Kn
 ```csharp
 using UnityEngine;
 
-namespace HeroKnight.Sensors
+namespace HeroKnightSandbox.Sensors
 {
     public class Sensor_HeroKnight : MonoBehaviour
     {
@@ -281,7 +281,7 @@ namespace HeroKnight.Sensors
 
 - [ ] **Step 2: Compile check**
 
-Run the Global Constraints compile-check command. Expected: no `error CS` lines. (Two classes named `Sensor_HeroKnight` now exist in different namespaces — the original in the global namespace under the Demo folder, ours under `HeroKnight.Sensors` — this is not a conflict since their fully-qualified names differ.)
+Run the Global Constraints compile-check command. Expected: no `error CS` lines. (Two classes named `Sensor_HeroKnight` now exist in different namespaces — the original in the global namespace under the Demo folder, ours under `HeroKnightSandbox.Sensors` — this is not a conflict since their fully-qualified names differ.)
 
 - [ ] **Step 3: Commit**
 
@@ -302,17 +302,17 @@ git commit -m "feat(hero-knight): add namespaced sensor component"
 - Create: `Assets/Scripts/HeroKnight/HeroKnightController.cs`
 
 **Interfaces:**
-- Consumes: `HeroKnight.Input.IHeroKnightInput` (Task 1), `HeroKnight.Sensors.Sensor_HeroKnight` (Task 4), `HeroKnight.Input.TouchHeroKnightInput` (Task 3, referenced by concrete type only in `HeroKnightController`'s serialized field, since Unity can't serialize interface references).
-- Produces: `HeroKnight.HeroKnightContext` (public fields: `Body`, `Animator`, `SpriteRenderer`, `Transform`, `Controls`, `GroundSensor`, `MoveSpeed`, `FacingDirection`; methods `UpdateFacing()`, `SetVelocityX(float)`; property `IsGrounded`). `HeroKnight.States.PlayerState` abstract base (`Enter()`, `Tick()`, `FixedTick()`, `Exit()`, all virtual/no-op by default; `protected Controller`, `protected Context`). `HeroKnight.HeroKnightController` with public properties `Idle`, `Run` (type `PlayerState`) and `public void ChangeState(PlayerState next)`. These property names (`Idle`, `Run`, and later `Jump`/`Fall`/`WallSlide`/`LedgeGrab`/`Roll`/`Block`/`Attack`) are the exact names every later task's states use to trigger transitions — do not rename them.
+- Consumes: `HeroKnightSandbox.Input.IHeroKnightInput` (Task 1), `HeroKnightSandbox.Sensors.Sensor_HeroKnight` (Task 4), `HeroKnightSandbox.Input.TouchHeroKnightInput` (Task 3, referenced by concrete type only in `HeroKnightController`'s serialized field, since Unity can't serialize interface references).
+- Produces: `HeroKnight.HeroKnightContext` (public fields: `Body`, `Animator`, `SpriteRenderer`, `Transform`, `Controls`, `GroundSensor`, `MoveSpeed`, `FacingDirection`; methods `UpdateFacing()`, `SetVelocityX(float)`; property `IsGrounded`). `HeroKnightSandbox.States.PlayerState` abstract base (`Enter()`, `Tick()`, `FixedTick()`, `Exit()`, all virtual/no-op by default; `protected Controller`, `protected Context`). `HeroKnight.HeroKnightController` with public properties `Idle`, `Run` (type `PlayerState`) and `public void ChangeState(PlayerState next)`. These property names (`Idle`, `Run`, and later `Jump`/`Fall`/`WallSlide`/`LedgeGrab`/`Roll`/`Block`/`Attack`) are the exact names every later task's states use to trigger transitions — do not rename them.
 
 - [ ] **Step 1: Write HeroKnightContext**
 
 ```csharp
-using HeroKnight.Input;
-using HeroKnight.Sensors;
+using HeroKnightSandbox.Input;
+using HeroKnightSandbox.Sensors;
 using UnityEngine;
 
-namespace HeroKnight
+namespace HeroKnightSandbox
 {
     /// <summary>
     /// Mutable data shared across all player states. Owned and populated by
@@ -358,7 +358,7 @@ namespace HeroKnight
 - [ ] **Step 2: Write PlayerState base**
 
 ```csharp
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public abstract class PlayerState
     {
@@ -385,7 +385,7 @@ namespace HeroKnight.States
 // Assets/Scripts/HeroKnight/States/IdleState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class IdleState : PlayerState
     {
@@ -414,7 +414,7 @@ namespace HeroKnight.States
 // Assets/Scripts/HeroKnight/States/RunState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class RunState : PlayerState
     {
@@ -446,12 +446,12 @@ namespace HeroKnight.States
 - [ ] **Step 4: Write HeroKnightController**
 
 ```csharp
-using HeroKnight.Input;
-using HeroKnight.Sensors;
-using HeroKnight.States;
+using HeroKnightSandbox.Input;
+using HeroKnightSandbox.Sensors;
+using HeroKnightSandbox.States;
 using UnityEngine;
 
-namespace HeroKnight
+namespace HeroKnightSandbox
 {
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Animator))]
@@ -566,7 +566,7 @@ And below the existing `IsGrounded` property:
 // Assets/Scripts/HeroKnight/States/JumpState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class JumpState : PlayerState
     {
@@ -605,7 +605,7 @@ namespace HeroKnight.States
 // Assets/Scripts/HeroKnight/States/FallState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class FallState : PlayerState
     {
@@ -645,7 +645,7 @@ namespace HeroKnight.States
 // Assets/Scripts/HeroKnight/States/WallSlideState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class WallSlideState : PlayerState
     {
@@ -790,7 +790,7 @@ git commit -m "feat(hero-knight): add jump, fall, and wall-slide states"
 - Modify: `Assets/Scripts/HeroKnight/States/WallSlideState.cs`
 
 **Interfaces:**
-- Produces: `HeroKnight.States.LedgeGrabState.CanGrab(HeroKnightContext)` (static, used by `FallState`/`WallSlideState`). `HeroKnightContext.LedgeSensorR/.LedgeSensorL` (type `Sensor_HeroKnight`), `.LedgeClimbOffset` (`Vector2`). `HeroKnightController.LedgeGrab` (type `PlayerState`).
+- Produces: `HeroKnightSandbox.States.LedgeGrabState.CanGrab(HeroKnightContext)` (static, used by `FallState`/`WallSlideState`). `HeroKnightContext.LedgeSensorR/.LedgeSensorL` (type `Sensor_HeroKnight`), `.LedgeClimbOffset` (`Vector2`). `HeroKnightController.LedgeGrab` (type `PlayerState`).
 
 This is the one move with no existing implementation to build on — see the design doc's "Ledge-grab (new logic)" section. Detection: while falling or wall-sliding, if a wall sensor pair is active but the ledge sensor above it is not, the wall ends here — grab it. Climb-up (Jump button) repositions the character by `LedgeClimbOffset` and goes to Idle (no dedicated climb animation exists in the asset pack — this is a deliberate snap, confirmed acceptable in the design). Drop (Roll button) restores normal physics and falls.
 
@@ -815,7 +815,7 @@ Add below the existing `JumpForce` field:
 // Assets/Scripts/HeroKnight/States/LedgeGrabState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class LedgeGrabState : PlayerState
     {
@@ -1000,7 +1000,7 @@ In `Assets/Scripts/HeroKnight/HeroKnightContext.cs`, add below the existing `Led
 // Assets/Scripts/HeroKnight/States/RollState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class RollState : PlayerState
     {
@@ -1184,7 +1184,7 @@ git commit -m "feat(hero-knight): add roll state"
 // Assets/Scripts/HeroKnight/States/BlockState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class BlockState : PlayerState
     {
@@ -1325,7 +1325,7 @@ Combo thresholds (0.25s minimum between hits, 1.0s combo reset) and the "loop ba
 // Assets/Scripts/HeroKnight/States/AttackState.cs
 using UnityEngine;
 
-namespace HeroKnight.States
+namespace HeroKnightSandbox.States
 {
     public class AttackState : PlayerState
     {
@@ -1468,7 +1468,7 @@ git commit -m "feat(hero-knight): add attack combo state"
 - [ ] **Step 1: Build the HeroKnight prefab**
   - Duplicate `Assets/Hero Knight - Pixel Art/Demo/HeroKnight.prefab` into a new prefab at `Assets/Prefabs/HeroKnight.prefab` (independent copy, not a variant, so the vendor demo script can be freely removed).
   - On the new prefab's root, remove the `HeroKnight` (demo) component and add `HeroKnight.HeroKnightController`.
-  - On each of the existing sensor children (`GroundSensor`, `WallSensor_R1`, `WallSensor_R2`, `WallSensor_L1`, `WallSensor_L2`), remove the vendor `Sensor_HeroKnight` component and add our `HeroKnight.Sensors.Sensor_HeroKnight` in its place (our `HeroKnightController` only accepts our namespaced type in its serialized fields).
+  - On each of the existing sensor children (`GroundSensor`, `WallSensor_R1`, `WallSensor_R2`, `WallSensor_L1`, `WallSensor_L2`), remove the vendor `Sensor_HeroKnight` component and add our `HeroKnightSandbox.Sensors.Sensor_HeroKnight` in its place (our `HeroKnightController` only accepts our namespaced type in its serialized fields).
   - Duplicate `WallSensor_R2` and `WallSensor_L2` to create two new children, `LedgeSensor_R` and `LedgeSensor_L`, each positioned roughly 0.5–1 unit above its counterpart (adjust by eye once the terrain ledge exists in Step 2 — the sensor should sit just above the wall's top edge).
   - On the prefab root's `HeroKnightController` component, assign `groundSensor`, `wallSensorR1`/`R2`/`L1`/`L2`, and `ledgeSensorR`/`L` to their matching children. Leave `input` empty for now — it's assigned per scene-instance in Step 4, since it lives on the Canvas, not the prefab.
 
@@ -1480,9 +1480,9 @@ git commit -m "feat(hero-knight): add attack combo state"
 
 - [ ] **Step 3: Build the touch UI**
   - Add a Canvas (GameObject > UI > Canvas); set Render Mode to Screen Space - Overlay; add a Canvas Scaler set to "Scale With Screen Size", reference resolution 1920x1080 (Unity auto-adds an EventSystem alongside the Canvas — required for the UI event handlers to fire).
-  - Add a child GameObject with a `HeroKnight.Input.TouchHeroKnightInput` component.
-  - Build the joystick: a background `Image` on the left with a `HeroKnight.UI.VirtualJoystick` component, and a child handle `Image` — assign both to the component's `background`/`handle` fields.
-  - Build four button `Image`s on the right (Jump, Attack, Block, Roll), each with a `HeroKnight.UI.TouchButton` component.
+  - Add a child GameObject with a `HeroKnightSandbox.Input.TouchHeroKnightInput` component.
+  - Build the joystick: a background `Image` on the left with a `HeroKnightSandbox.UI.VirtualJoystick` component, and a child handle `Image` — assign both to the component's `background`/`handle` fields.
+  - Build four button `Image`s on the right (Jump, Attack, Block, Roll), each with a `HeroKnightSandbox.UI.TouchButton` component.
   - On the `TouchHeroKnightInput` component, assign the joystick and the four buttons to their matching fields.
   - On the `HeroKnight` prefab instance's `HeroKnightController` component, assign the Canvas's `TouchHeroKnightInput` to the `input` field.
 
