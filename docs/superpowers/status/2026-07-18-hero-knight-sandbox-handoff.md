@@ -386,6 +386,219 @@ polish item (e.g. re-checking the vendor sprite import's pivot per-frame), not
 a logic fix — do not re-open `LedgeGrabState.cs`/`HeroKnightContext.cs` for
 this again without new evidence it's climb-specific.
 
+## Round 7 — Task 12 polish: collider/sprite gap closed
+
+Post-commit (`20605f7`/`21620ed`), user asked about the small visual gap
+between the collider and ground noted in round 6 (confirmed cosmetic, not a
+logic bug). Live-tuned the vendor's `BoxCollider2D.offset.y` (originally
+`0.662`) upward in the Inspector during Play mode until the boots sat flush
+on the ground; landed on `0.68f`.
+
+**Fix applied:** baked into `BuildPrefab()` in
+`Assets/Editor/HeroKnightSandboxSetup.cs` (added right after the demo-script
+removal) so it survives future prefab regenerations, since `Assets/Prefabs/HeroKnight.prefab`
+is always rebuilt fresh from the vendor's untouched source prefab.
+**Requires re-running `HeroKnightSandbox > 1 Build Prefab`** to take effect on
+the actual prefab asset (this one **is** a wiring/asset change, unlike rounds
+3/5's pure script-logic fixes) — no need to rebuild the scene, it references
+the prefab by GUID. **Not yet re-tested or committed** — pick up here: ask
+user to re-run Build Prefab, confirm the gap looks closed on both flat ground
+and the wall-top ledge, then commit
+`Assets/Editor/HeroKnightSandboxSetup.cs` + `Assets/Prefabs/HeroKnight.prefab`
+together (small follow-up commit on top of `21620ed`).
+
+## Round 8 — two more Task 12 bugs found after re-testing round 7's fix
+
+After re-running Build Prefab for round 7's collider-offset fix, user found
+two further issues while re-testing ledge-grab:
+
+1. **Animator stuck in LedgeGrab clip after climbing.** `AddLedgeGrabToAnimator()`
+   only ever added an entry transition (Any State → LedgeGrab). There was no
+   exit transition at all, so once the Animator entered that state it played
+   the clip forever regardless of the C# state machine — confirmed the C#
+   side was already correctly in `IdleState` (per round 5/6's debug overlay
+   data), just the *visual* animation never left LedgeGrab until an unrelated
+   second Jump press happened to force it out via the vendor's own
+   `AnyState → Jump` transition. **Fix:** added
+   `AddLedgeGrabExitTransition()` in `HeroKnightSandboxSetup.cs`, called for
+   two explicit exits: LedgeGrab → `Idle` (condition `AnimState == 0`, set by
+   `IdleState.Enter()`) and LedgeGrab → `Fall` (condition `Grounded == false`,
+   kept in sync every frame by `HeroKnightController.Update()`). Idempotent
+   (checks `from.transitions` before adding) so reruns are safe.
+2. **Character sprite rendering behind/"inside" the wall.** Both the
+   character's `SpriteRenderer` and every `CreatePlatform()` terrain sprite
+   defaulted to `sortingOrder: 0` — an unresolved tie. Since `LedgeGrabState.Enter()`
+   snaps the character's X right against the wall's face, part of its sprite
+   legitimately overlaps the wall's rendered rectangle, and the tie-break
+   sometimes drew the wall on top. **Fix:** `BuildPrefab()` now explicitly
+   sets the character's `SpriteRenderer.sortingOrder = 10`, unambiguously in
+   front of all terrain (still default `0`).
+
+**Both fixes require re-running menu items** (unlike rounds 3/5's pure
+script-logic changes): **`HeroKnightSandbox > 1 Build Prefab`** (sorting
+order + round 7's collider offset) **and `HeroKnightSandbox > 2 Add LedgeGrab
+To Animator`** (exit transitions). No need to rebuild the scene. **Not yet
+re-tested.** Pick up here: ask user to re-run both menu items in order, retest
+ledge-grab climb, and confirm (a) the Idle animation plays immediately after
+one Jump press, no second press needed, and (b) the character sprite stays
+visually in front of the wall throughout the grab/climb.
+
+Once confirmed, commit `Assets/Editor/HeroKnightSandboxSetup.cs`,
+`Assets/Prefabs/HeroKnight.prefab`, and
+`"Assets/Hero Knight - Pixel Art/Animations/HeroKnight_AnimController.controller"`
+together as a follow-up commit on top of `21620ed`.
+
+## Round 9 — round 8's animator exit fix regressed further (3 jumps needed, not 2); debug overlay re-added
+
+User re-ran both `1 Build Prefab` and `2 Add LedgeGrab To Animator` and
+retested. Got worse, not better: needed **3** jump presses to reach a normal
+Idle stance (previously 2). No debug overlay was available for this test
+(removed before the round 7/8 commits), so diagnosis was screenshot-only and
+inconclusive.
+
+**Suspected cause (not yet confirmed):** the two exit conditions added in
+round 8 — `AnimState == 0` and `Grounded == false` — are likely **already
+true from before the grab even happens**, not freshly true at climb/drop
+time. Neither `WallSlideState` nor `LedgeGrabState` ever change `AnimState`
+(only `IdleState`/`RunState` do), so it likely still reads whatever it was
+before the wall-slide began. Similarly `Grounded` is already `false`
+throughout the wall-slide/grab (that's *why* the grab was reachable at all).
+If both conditions read true immediately upon entering the `LedgeGrab`
+animator state, Unity's `hasExitTime=false, duration=0` transitions could
+fire almost immediately rather than waiting for a real climb/drop decision —
+though the observed "needs multiple jumps" symptom doesn't cleanly match a
+"bounces back instantly" theory either, hence not yet confirmed.
+
+**Action taken:** re-added a temporary debug overlay to
+`HeroKnightController.cs` (this is a re-add — it had been removed prior to
+the `20605f7`/`21620ed` commits). This version is richer than the earlier one:
+shows the **C# state name** AND the **actual currently-playing Animator clip
+name** side by side (via `Animator.GetCurrentAnimatorClipInfo(0)`), plus
+`AnimState`/`Grounded` animator parameter values, sensor-based `Grounded`,
+`IsWallSliding`, velocity, position, and body type. This directly answers
+whether the C# logic and the visual Animator are in sync or diverged, which
+plain screenshots couldn't settle.
+
+**Not yet tested.** Pick up here: ask user to let it recompile, retest the
+ledge-grab climb, and screenshot the overlay at each jump press (grab moment,
+1st press, 2nd press if still needed) so we can see exactly where C# state
+and Animator clip disagree. Do not further modify `AddLedgeGrabToAnimator()`'s
+exit-transition logic until this data comes back — round 8's fix might need
+a different signal entirely (e.g. a dedicated one-shot Trigger parameter set
+explicitly by `LedgeGrabState.Tick()` at the moment of climb/drop, immune to
+this kind of stale-value race, instead of reusing `AnimState`/`Grounded`).
+
+Remember: **remove this debug overlay again before the next commit**, same as
+before.
+
+## Round 10 — root cause of round 9 confirmed, switched to dedicated one-shot triggers
+
+Debug overlay data proved the theory: at the very moment of grabbing (before
+any Jump press), overlay showed `C# State: LedgeGrabState` but
+`Animator Clip: HeroKnight_Idle` already playing — the LedgeGrab clip never
+really got a chance to show. Root cause confirmed: `AnimState==0` and
+`Grounded==false` were both already true from *before* the grab (neither
+`WallSlideState` nor `LedgeGrabState` ever touch `AnimState`; `Grounded` is
+false throughout the whole wall-slide/grab by construction), so both
+condition-based exit transitions added in round 8 fired almost immediately on
+entering the state, desyncing the visual Animator from the still-active C#
+`LedgeGrabState`. The player's first Jump press was actually the real climb
+input (silently consumed correctly), but looked like nothing happened since
+Idle was already showing, prompting a second press that read as a genuine new
+jump.
+
+**Fix applied (round 10):**
+- `Assets/Scripts/HeroKnight/States/LedgeGrabState.cs`: fires
+  `Context.Animator.SetTrigger("LedgeClimb")` right before the climb's
+  `ChangeState(Controller.Idle)`, and `SetTrigger("LedgeDrop")` right before
+  the drop's `ChangeState(Controller.Fall)` — dedicated one-shot signals set
+  only at the exact moment of decision, immune to stale-parameter races.
+- `Assets/Editor/HeroKnightSandboxSetup.cs`: `AddLedgeGrabToAnimator()` now
+  adds `LedgeClimb`/`LedgeDrop` trigger parameters (via new
+  `AddTriggerParameterIfMissing()` helper) and wires the two exit transitions
+  on those triggers (`AnimatorConditionMode.If`) instead of
+  `AnimState`/`Grounded`. `AddLedgeGrabExitTransition()` now **removes any
+  existing transition to the same destination before adding the new one**
+  (previously it skipped if one already existed) — necessary because round
+  9's already-committed Animator Controller has the old, wrong-condition
+  transitions baked in from the previous run; a plain "skip if exists" would
+  have left them in place forever.
+
+**Requires re-running `HeroKnightSandbox > 2 Add LedgeGrab To Animator`**
+(script-only + Animator Controller asset change — no need for `1 Build
+Prefab` or scene rebuild this time). **Not yet tested.** Pick up here: ask
+user to let it recompile, re-run that one menu item, retest the ledge climb,
+and confirm via the debug overlay that `Animator Clip` shows `HeroKnight_LedgeGrab`
+(or whatever the clip is actually named) while `C# State: LedgeGrabState`,
+and only switches to Idle's clip once Jump is pressed and `C# State` changes
+too — i.e. the two should now change together, not desync.
+
+Once confirmed: remove the debug overlay again, then commit
+`Assets/Editor/HeroKnightSandboxSetup.cs`,
+`Assets/Scripts/HeroKnight/States/LedgeGrabState.cs`, and
+`"Assets/Hero Knight - Pixel Art/Animations/HeroKnight_AnimController.controller"`
+(this round's Animator wiring changes) together — plus whatever's still
+pending from round 7/8 (`Assets/Prefabs/HeroKnight.prefab`, sorting-order and
+collider-offset changes) if not already committed by then.
+
+## Round 11 — hang position overlapped the wall visually
+
+User asked (no screenshot, conceptual question) whether the ledge-grab pose
+should show the character hanging outside/beside the wall rather than
+overlapping into it. Correct intuition: `LedgeGrabState.Enter()`'s X-snap
+used `WallSensorR2`/`WallSensorL2`'s own position directly as the character's
+body-center X — that sensor sits barely outside the main collider's own edge
+(by design, to detect the wall just before the body touches it), so snapping
+the body's *center* there put roughly half the body's width overlapping the
+wall's footprint instead of hanging beside it. The sensor position marks
+where the hand should reach, not where the torso belongs.
+
+**Fix applied:** added `HeroKnightContext.LedgeHangOffset = 0.3f` (plain
+field, not `[SerializeField]`) and changed `LedgeGrabState.Enter()` to pull
+the snap position back by that amount, away from the wall on whichever side
+was grabbed, instead of using the raw sensor X directly.
+
+**Not yet tested — value is a starting guess, likely needs live-tuning** the
+same way `LedgeClimbOffset`/the collider offset did. Pure script change, no
+menu re-run needed, just recompile. Pick up here: ask user to retest the grab
+pose and report whether `0.3f` looks right, too far out, or still overlapping
+— adjust `LedgeHangOffset` accordingly (same iterate-by-eye approach as
+round 7's collider offset).
+
+## Round 12 — round 10's animator fix exposed a pre-existing re-grab loop
+
+User tested round 11's hang-offset fix (visually correct: character now hangs
+clear of the wall, `Animator Clip` correctly tracks `C# State` per round 10's
+fix). But found a *new* symptom: needed 2-3 jump presses again, this time
+with the overlay showing `C# State: LedgeGrabState` reappearing *after* a
+climb had already been initiated (position data showed a real climb offset
+had been applied between screenshots, then the state was back in
+`LedgeGrabState` at a new, higher position).
+
+**Root cause:** this bug likely always existed but was invisible before round
+10 (when the Animator always jumped to Idle regardless of C# state, masking
+any rapid re-cycling). The climb offset (`LedgeClimbOffset.y = 1.6`) doesn't
+always land the character exactly on solid ground — overlay confirmed
+`Grounded: False` immediately after one climb, meaning it landed slightly
+above the true resting surface. `IdleState` correctly falls back to
+`FallState` when ungrounded, and during that brief residual fall the wall
+sensors can re-touch the wall before the character clears them, re-satisfying
+`LedgeGrabState.CanGrab()` and looping straight back in. The **drop** branch
+already guards against exactly this (`WallSensorR1-L2.Disable(RegrabCooldown)`
+before transitioning to Fall) — the **climb** branch never had the same
+guard.
+
+**Fix applied:** added the identical `Disable(RegrabCooldown)` calls (0.3s)
+to the climb branch in `LedgeGrabState.Tick()`, right after applying the
+climb offset and before the state change. Pure script change, no menu
+re-run needed.
+
+**CONFIRMED WORKING.** User recompiled and retested: single Jump press now
+reliably climbs and settles in `IdleState`, no re-grab loop. This closes out
+ledge-grab (grab/hang position/climb/drop) as fully correct — all of Task 11
+and the Task-12-adjacent polish items found during this session's playtesting
+are done.
+
 ## Known follow-up items (do these once wall-slide/ledge-grab are confirmed)
 
 1. **Remove the temporary debug overlay.** In

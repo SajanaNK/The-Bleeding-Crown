@@ -57,6 +57,22 @@ public static class HeroKnightSandboxSetup
             Object.DestroyImmediate(demoScript, true);
         }
 
+        // Vendor's own BoxCollider2D offset (Y: 0.662) leaves a small but visible gap
+        // between the collider's resting contact point and the sprite's drawn boots on
+        // this level's flat ground/ledge surfaces. Nudged up live in the Inspector during
+        // playtesting until the boots sat flush; 0.68 was the value that looked right.
+        BoxCollider2D bodyCollider = root.GetComponent<BoxCollider2D>();
+        bodyCollider.offset = new Vector2(bodyCollider.offset.x, 0.68f);
+
+        // Terrain sprites from CreatePlatform() below and the character's own
+        // SpriteRenderer both default to sortingOrder 0, an unresolved tie that Unity
+        // breaks by an undefined/arbitrary criterion. Confirmed live during ledge-grab
+        // testing: with the character's Transform positioned right at the wall's edge
+        // (as LedgeGrabState's X-snap does), the terrain sprite sometimes drew in front,
+        // making the character appear to render "inside" the wall. Forcing the character
+        // strictly in front of all terrain removes the ambiguity.
+        root.GetComponent<SpriteRenderer>().sortingOrder = 10;
+
         HeroKnightController controller = root.AddComponent<HeroKnightController>();
 
         HeroKnightSandbox.Sensors.Sensor_HeroKnight groundSensor = ReplaceSensor(root.transform.Find("GroundSensor"));
@@ -126,11 +142,9 @@ public static class HeroKnightSandboxSetup
             throw new System.Exception("Animator controller not found at " + ControllerPath);
         }
 
-        bool hasParam = controller.parameters.Any(p => p.name == "LedgeGrab" && p.type == AnimatorControllerParameterType.Trigger);
-        if (!hasParam)
-        {
-            controller.AddParameter("LedgeGrab", AnimatorControllerParameterType.Trigger);
-        }
+        AddTriggerParameterIfMissing(controller, "LedgeGrab");
+        AddTriggerParameterIfMissing(controller, "LedgeClimb");
+        AddTriggerParameterIfMissing(controller, "LedgeDrop");
 
         AnimatorStateMachine sm = controller.layers[0].stateMachine;
         AnimatorState state = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "LedgeGrab");
@@ -156,10 +170,66 @@ public static class HeroKnightSandboxSetup
             t.canTransitionToSelf = true;
         }
 
+        // LedgeGrab previously had no way OUT: only the AnyState entry transition above
+        // was ever added, so once the Animator entered this state it stayed there
+        // forever, regardless of what the C# state machine did next -- confirmed live:
+        // after climbing, LedgeGrabState.Tick() correctly moves to Controller.Idle, but
+        // the Animator kept playing the LedgeGrab clip until an unrelated second Jump
+        // input happened to force it out via the vendor's own AnyState->Jump transition.
+        //
+        // First attempt used AnimState==0 / Grounded==false as the exit conditions --
+        // both WRONG, confirmed live via debug overlay: neither WallSlideState nor
+        // LedgeGrabState ever change AnimState, and Grounded is already false the whole
+        // time we're hanging (that's how the grab became reachable), so both conditions
+        // already read as "exit" from the instant LedgeGrab is entered, firing the
+        // transition almost immediately -- the Animator jumped straight to Idle while
+        // the C# state machine was still legitimately in LedgeGrabState waiting for
+        // input. Fixed by using two dedicated one-shot Trigger parameters instead,
+        // fired explicitly by LedgeGrabState.Tick() only at the moment it actually
+        // decides to climb or drop -- immune to this kind of stale-value race.
+        AnimatorState idleState = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "Idle");
+        AnimatorState fallState = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "Fall");
+        AddLedgeGrabExitTransition(state, idleState, AnimatorConditionMode.If, "LedgeClimb", 0f);
+        AddLedgeGrabExitTransition(state, fallState, AnimatorConditionMode.If, "LedgeDrop", 0f);
+
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
 
         Debug.Log("HeroKnightSandboxSetup: LedgeGrab animator state/parameter/transition ready");
+    }
+
+    private static void AddTriggerParameterIfMissing(AnimatorController controller, string name)
+    {
+        bool hasParam = controller.parameters.Any(p => p.name == name && p.type == AnimatorControllerParameterType.Trigger);
+        if (!hasParam)
+        {
+            controller.AddParameter(name, AnimatorControllerParameterType.Trigger);
+        }
+    }
+
+    private static void AddLedgeGrabExitTransition(AnimatorState from, AnimatorState to, AnimatorConditionMode mode, string parameter, float threshold)
+    {
+        if (to == null)
+        {
+            throw new System.Exception("Animator state not found: expected exit target for LedgeGrab (name lookup failed)");
+        }
+
+        // Remove any transition to this destination from an earlier run of this method
+        // (e.g. the AnimState/Grounded-based one this replaces) rather than skip when
+        // one already exists -- a rerun must always reflect the current condition logic
+        // below, not silently keep whatever an earlier script version wired up.
+        foreach (AnimatorStateTransition existing in from.transitions.Where(t => t.destinationState == to).ToList())
+        {
+            from.RemoveTransition(existing);
+        }
+
+        AnimatorStateTransition transition = from.AddTransition(to);
+        transition.AddCondition(mode, threshold, parameter);
+        transition.duration = 0f;
+        transition.exitTime = 0f;
+        transition.hasExitTime = false;
+        transition.hasFixedDuration = false;
+        transition.interruptionSource = TransitionInterruptionSource.None;
     }
 
     [MenuItem("HeroKnightSandbox/3 Build Scene")]
