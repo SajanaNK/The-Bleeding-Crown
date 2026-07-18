@@ -15,6 +15,18 @@ namespace HeroKnightSandbox.States
         {
             Context.UpdateFacing();
 
+            if (!Context.IsGrounded)
+            {
+                Controller.ChangeState(Controller.Fall);
+                return;
+            }
+
+            if (Context.Controls.JumpPressed)
+            {
+                Controller.ChangeState(Controller.Jump);
+                return;
+            }
+
             if (Mathf.Abs(Context.Controls.MoveX) <= Mathf.Epsilon)
             {
                 Controller.ChangeState(Controller.Idle);

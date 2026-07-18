@@ -17,11 +17,20 @@ namespace HeroKnightSandbox
         public IHeroKnightInput Controls;
 
         public Sensor_HeroKnight GroundSensor;
+        public Sensor_HeroKnight WallSensorR1;
+        public Sensor_HeroKnight WallSensorR2;
+        public Sensor_HeroKnight WallSensorL1;
+        public Sensor_HeroKnight WallSensorL2;
 
         public float MoveSpeed = 4.0f;
+        public float JumpForce = 7.5f;
         public int FacingDirection = 1;
 
         public bool IsGrounded => GroundSensor.State();
+
+        public bool IsWallSliding =>
+            (WallSensorR1.State() && WallSensorR2.State()) ||
+            (WallSensorL1.State() && WallSensorL2.State());
 
         public void UpdateFacing()
         {

@@ -12,12 +12,19 @@ namespace HeroKnightSandbox
     {
         [SerializeField] private TouchHeroKnightInput input;
         [SerializeField] private Sensor_HeroKnight groundSensor;
+        [SerializeField] private Sensor_HeroKnight wallSensorR1;
+        [SerializeField] private Sensor_HeroKnight wallSensorR2;
+        [SerializeField] private Sensor_HeroKnight wallSensorL1;
+        [SerializeField] private Sensor_HeroKnight wallSensorL2;
 
         private HeroKnightContext context;
         private PlayerState currentState;
 
         public IdleState Idle { get; private set; }
         public RunState Run { get; private set; }
+        public JumpState Jump { get; private set; }
+        public FallState Fall { get; private set; }
+        public WallSlideState WallSlide { get; private set; }
 
         private void Awake()
         {
@@ -29,10 +36,17 @@ namespace HeroKnightSandbox
                 Transform = transform,
                 Controls = input,
                 GroundSensor = groundSensor,
+                WallSensorR1 = wallSensorR1,
+                WallSensorR2 = wallSensorR2,
+                WallSensorL1 = wallSensorL1,
+                WallSensorL2 = wallSensorL2,
             };
 
             Idle = new IdleState(this, context);
             Run = new RunState(this, context);
+            Jump = new JumpState(this, context);
+            Fall = new FallState(this, context);
+            WallSlide = new WallSlideState(this, context);
         }
 
         private void Start()
