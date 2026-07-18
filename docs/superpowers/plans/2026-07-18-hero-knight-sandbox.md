@@ -303,7 +303,7 @@ git commit -m "feat(hero-knight): add namespaced sensor component"
 
 **Interfaces:**
 - Consumes: `HeroKnightSandbox.Input.IHeroKnightInput` (Task 1), `HeroKnightSandbox.Sensors.Sensor_HeroKnight` (Task 4), `HeroKnightSandbox.Input.TouchHeroKnightInput` (Task 3, referenced by concrete type only in `HeroKnightController`'s serialized field, since Unity can't serialize interface references).
-- Produces: `HeroKnight.HeroKnightContext` (public fields: `Body`, `Animator`, `SpriteRenderer`, `Transform`, `Controls`, `GroundSensor`, `MoveSpeed`, `FacingDirection`; methods `UpdateFacing()`, `SetVelocityX(float)`; property `IsGrounded`). `HeroKnightSandbox.States.PlayerState` abstract base (`Enter()`, `Tick()`, `FixedTick()`, `Exit()`, all virtual/no-op by default; `protected Controller`, `protected Context`). `HeroKnight.HeroKnightController` with public properties `Idle`, `Run` (type `PlayerState`) and `public void ChangeState(PlayerState next)`. These property names (`Idle`, `Run`, and later `Jump`/`Fall`/`WallSlide`/`LedgeGrab`/`Roll`/`Block`/`Attack`) are the exact names every later task's states use to trigger transitions — do not rename them.
+- Produces: `HeroKnightSandbox.HeroKnightContext` (public fields: `Body`, `Animator`, `SpriteRenderer`, `Transform`, `Controls`, `GroundSensor`, `MoveSpeed`, `FacingDirection`; methods `UpdateFacing()`, `SetVelocityX(float)`; property `IsGrounded`). `HeroKnightSandbox.States.PlayerState` abstract base (`Enter()`, `Tick()`, `FixedTick()`, `Exit()`, all virtual/no-op by default; `protected Controller`, `protected Context`). `HeroKnightSandbox.HeroKnightController` with public properties `Idle`, `Run` (type `PlayerState`) and `public void ChangeState(PlayerState next)`. These property names (`Idle`, `Run`, and later `Jump`/`Fall`/`WallSlide`/`LedgeGrab`/`Roll`/`Block`/`Attack`) are the exact names every later task's states use to trigger transitions — do not rename them.
 
 - [ ] **Step 1: Write HeroKnightContext**
 
@@ -1467,7 +1467,7 @@ git commit -m "feat(hero-knight): add attack combo state"
 
 - [ ] **Step 1: Build the HeroKnight prefab**
   - Duplicate `Assets/Hero Knight - Pixel Art/Demo/HeroKnight.prefab` into a new prefab at `Assets/Prefabs/HeroKnight.prefab` (independent copy, not a variant, so the vendor demo script can be freely removed).
-  - On the new prefab's root, remove the `HeroKnight` (demo) component and add `HeroKnight.HeroKnightController`.
+  - On the new prefab's root, remove the `HeroKnight` (demo) component and add `HeroKnightSandbox.HeroKnightController`.
   - On each of the existing sensor children (`GroundSensor`, `WallSensor_R1`, `WallSensor_R2`, `WallSensor_L1`, `WallSensor_L2`), remove the vendor `Sensor_HeroKnight` component and add our `HeroKnightSandbox.Sensors.Sensor_HeroKnight` in its place (our `HeroKnightController` only accepts our namespaced type in its serialized fields).
   - Duplicate `WallSensor_R2` and `WallSensor_L2` to create two new children, `LedgeSensor_R` and `LedgeSensor_L`, each positioned roughly 0.5–1 unit above its counterpart (adjust by eye once the terrain ledge exists in Step 2 — the sensor should sit just above the wall's top edge).
   - On the prefab root's `HeroKnightController` component, assign `groundSensor`, `wallSensorR1`/`R2`/`L1`/`L2`, and `ledgeSensorR`/`L` to their matching children. Leave `input` empty for now — it's assigned per scene-instance in Step 4, since it lives on the Canvas, not the prefab.
