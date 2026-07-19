@@ -28,7 +28,17 @@ namespace HeroKnightSandbox
         [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight ledgeSensorL;
 
         private HeroKnightContext context;
-        private PlayerState currentState;
+        // Fully qualified: see the matching comment on the sensor fields above. A newly
+        // added vendor package (Assets/SPUM/Core/Script/Data/SPUM_Prefabs.cs) declares
+        // `public enum PlayerState` directly in the global namespace, which now silently
+        // wins over the `using HeroKnightSandbox.States;` import above for every bare
+        // `PlayerState` reference in this file (this class lives in the parent
+        // `HeroKnightSandbox` namespace, not `.States`, so it has no same-namespace
+        // declaration to fall back on the way files inside States/ do). Left unqualified,
+        // ChangeState()'s parameter type silently became the SPUM enum instead of our
+        // class, causing "cannot convert FallState to PlayerState" and similar errors at
+        // every call site despite FallState correctly extending the real PlayerState.
+        private HeroKnightSandbox.States.PlayerState currentState;
 
         public IdleState Idle { get; private set; }
         public RunState Run { get; private set; }
@@ -100,7 +110,7 @@ namespace HeroKnightSandbox
             currentState.FixedTick();
         }
 
-        public void ChangeState(PlayerState next)
+        public void ChangeState(HeroKnightSandbox.States.PlayerState next)
         {
             currentState?.Exit();
             currentState = next;

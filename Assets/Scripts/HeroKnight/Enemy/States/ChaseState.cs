@@ -39,13 +39,13 @@ namespace HeroKnightSandbox.Enemy
             Context.Transform.position = new Vector3(next.x, next.y, Context.Transform.position.z);
 
             float distance = Vector2.Distance(Context.Transform.position, Context.Player.transform.position);
-            if (distance < Context.AttackRange)
+            if (Context.PlayerWithinHeight && distance < Context.AttackRange)
             {
                 Controller.ChangeState(Controller.Attack);
                 return;
             }
 
-            if (distance > Context.DetectionRange)
+            if (!Context.PlayerWithinHeight || distance > Context.DetectionRange)
             {
                 Controller.ChangeState(Controller.Patrol);
             }

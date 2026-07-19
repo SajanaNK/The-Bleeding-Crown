@@ -65,6 +65,7 @@ public static class HeroKnightSandboxSetup
     private const string EnemyDestPrefabPath = "Assets/Prefabs/HeroKnightEnemy.prefab";
     private const string HeavyEnemySourcePrefabPath = "Assets/Bandits - Pixel Art/Demo/HeavyBandit.prefab";
     private const string HeavyEnemyDestPrefabPath = "Assets/Prefabs/HeroKnightHeavyEnemy.prefab";
+    private const string ProjectileSpritePath = "Assets/FlexUnit/2DMedievalWeaponPack/LQ/Sprites/Bow/Arrow.png";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -567,8 +568,9 @@ public static class HeroKnightSandboxSetup
 
     private static void CreateEnemy(string name, GameObject enemyPrefab, Vector2 anchorPosition,
         Vector2 startOffset, Vector2 endOffset, HeroKnightController player,
-        int maxHP = 3, float moveSpeed = 2.0f, int attackDamage = 1)
+        int maxHP = 3, float moveSpeed = 2.0f, int attackDamage = 1, float attackRange = 1.0f, bool ranged = false)
     {
+        Sprite projectileSprite = ranged ? AssetDatabase.LoadAssetAtPath<Sprite>(ProjectileSpritePath) : null;
         // Destroy-and-recreate rather than skip-if-exists: a rerun must always reconnect
         // to the current enemyPrefab (e.g. after BuildEnemyPrefab() rebuilds it), matching
         // BuildPrefab()'s own always-rebuild convention for the player prefab. Skipping
@@ -603,6 +605,9 @@ public static class HeroKnightSandboxSetup
         so.FindProperty("maxHP").intValue = maxHP;
         so.FindProperty("moveSpeed").floatValue = moveSpeed;
         so.FindProperty("attackDamage").intValue = attackDamage;
+        so.FindProperty("attackRange").floatValue = attackRange;
+        so.FindProperty("ranged").boolValue = ranged;
+        so.FindProperty("projectileSprite").objectReferenceValue = projectileSprite;
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -652,6 +657,31 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: heavy enemy built");
     }
 
+    [MenuItem("HeroKnightSandbox/9 Build Ranged Enemy")]
+    public static void BuildRangedEnemy()
+    {
+        GameObject player = GameObject.Find("HeroKnight");
+        if (player == null)
+        {
+            throw new System.Exception("HeroKnight instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        HeroKnightController controller = player.GetComponent<HeroKnightController>();
+        // Reuses the same Light Bandit prefab as the melee enemies - "ranged" is a
+        // per-instance toggle set below via CreateEnemy(), not baked into the prefab.
+        GameObject enemyPrefab = BuildEnemyPrefab(EnemySourcePrefabPath, EnemyDestPrefabPath);
+
+        // Placed further along the Ground platform (spans x -6..18) than Enemy_1/Enemy_2,
+        // near the gap before the Wall, so there's open room to see it fire from range
+        // before the player closes the distance.
+        CreateEnemy("RangedEnemy_1", enemyPrefab, new Vector2(16f, 0.5f), new Vector2(-1f, 0f), new Vector2(1f, 0f), controller,
+            attackRange: 3.5f, ranged: true);
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: ranged enemy built");
+    }
+
     [MenuItem("HeroKnightSandbox/Run All")]
     public static void RunAll()
     {
@@ -662,6 +692,7 @@ public static class HeroKnightSandboxSetup
         FinalizeProjectSettings();
         BuildEnemies();
         BuildHeavyEnemy();
+        BuildRangedEnemy();
     }
 }
 }

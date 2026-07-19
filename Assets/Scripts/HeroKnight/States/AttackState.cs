@@ -53,8 +53,11 @@ namespace HeroKnightSandbox.States
         {
             foreach (EnemyController enemy in EnemyRegistry.All)
             {
-                float dx = enemy.Position.x - Context.Transform.position.x;
-                if (Mathf.Abs(dx) <= Context.AttackHitRadius && Mathf.Sign(dx) == Context.FacingDirection)
+                Vector3 offset = enemy.Position - Context.Transform.position;
+                // Full 2D distance, not just X: an X-only check let attacks land on an
+                // enemy standing on a platform directly overhead (or below), regardless
+                // of how large the vertical gap actually was.
+                if (offset.magnitude <= Context.AttackHitRadius && Mathf.Sign(offset.x) == Context.FacingDirection)
                 {
                     enemy.TakeDamage(Context.AttackDamage);
                     return;

@@ -19,12 +19,17 @@ namespace HeroKnightSandbox.Enemy
         [SerializeField] private float attackCooldown = 0.4f;
         [SerializeField] private float detectionRange = 4.0f;
 
+        // Picks RangedAttackState instead of the melee AttackState in Awake() below.
+        // Default false, so existing melee prefab instances are unaffected.
+        [SerializeField] private bool ranged;
+        [SerializeField] private Sprite projectileSprite;
+
         private EnemyContext context;
         private EnemyState currentState;
 
         public PatrolState Patrol { get; private set; }
         public ChaseState Chase { get; private set; }
-        public AttackState Attack { get; private set; }
+        public EnemyState Attack { get; private set; }
         public HurtState Hurt { get; private set; }
         public DeadState Dead { get; private set; }
 
@@ -36,6 +41,7 @@ namespace HeroKnightSandbox.Enemy
                 Animator = GetComponent<Animator>(),
                 PatrolPath = patrolPath,
                 Player = player,
+                ProjectileSprite = projectileSprite,
                 MaxHP = maxHP,
                 MoveSpeed = moveSpeed,
                 AttackDamage = attackDamage,
@@ -48,7 +54,7 @@ namespace HeroKnightSandbox.Enemy
 
             Patrol = new PatrolState(this, context);
             Chase = new ChaseState(this, context);
-            Attack = new AttackState(this, context);
+            Attack = ranged ? (EnemyState)new RangedAttackState(this, context) : new AttackState(this, context);
             Hurt = new HurtState(this, context);
             Dead = new DeadState(this, context);
         }
