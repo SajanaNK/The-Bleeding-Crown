@@ -17,6 +17,7 @@ namespace HeroKnightSandbox.Enemy
         public int CurrentHP;
         public float MoveSpeed = 2.0f;
         public float AttackRange = 1.0f;
+        public float DetectionRange = 4.0f;
         public int AttackDamage = 1;
         public float AttackWindup = 0.4f;
         public float AttackCooldown = 0.4f;

@@ -17,11 +17,13 @@ namespace HeroKnightSandbox.Enemy
         [SerializeField] private float attackRange = 1.0f;
         [SerializeField] private float attackWindup = 0.4f;
         [SerializeField] private float attackCooldown = 0.4f;
+        [SerializeField] private float detectionRange = 4.0f;
 
         private EnemyContext context;
         private EnemyState currentState;
 
         public PatrolState Patrol { get; private set; }
+        public ChaseState Chase { get; private set; }
         public AttackState Attack { get; private set; }
         public HurtState Hurt { get; private set; }
         public DeadState Dead { get; private set; }
@@ -40,10 +42,12 @@ namespace HeroKnightSandbox.Enemy
                 AttackRange = attackRange,
                 AttackWindup = attackWindup,
                 AttackCooldown = attackCooldown,
+                DetectionRange = detectionRange,
             };
             context.CurrentHP = context.MaxHP;
 
             Patrol = new PatrolState(this, context);
+            Chase = new ChaseState(this, context);
             Attack = new AttackState(this, context);
             Hurt = new HurtState(this, context);
             Dead = new DeadState(this, context);
