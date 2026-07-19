@@ -40,6 +40,9 @@ namespace HeroKnightSandbox
         public BlockState Block { get; private set; }
         public AttackState Attack { get; private set; }
         public HurtState Hurt { get; private set; }
+        public DeathState Death { get; private set; }
+
+        private Vector3 spawnPosition;
 
         private void Awake()
         {
@@ -69,8 +72,10 @@ namespace HeroKnightSandbox
             Block = new BlockState(this, context);
             Attack = new AttackState(this, context);
             Hurt = new HurtState(this, context);
+            Death = new DeathState(this, context);
 
             context.CurrentHP = context.MaxHP;
+            spawnPosition = transform.position;
         }
 
         private void Start()
@@ -104,14 +109,37 @@ namespace HeroKnightSandbox
 
         public void TakeDamage(int amount)
         {
-            if (context.IsInvulnerable || currentState == Hurt)
+            if (context.IsInvulnerable || currentState == Hurt || currentState == Death)
             {
                 return;
             }
 
             context.CurrentHP -= amount;
+            if (context.CurrentHP <= 0)
+            {
+                ChangeState(Death);
+                return;
+            }
+
             context.InvulnerabilityTimer = context.InvulnerabilityDuration;
             ChangeState(Hurt);
+        }
+
+        public void Respawn()
+        {
+            context.CurrentHP = context.MaxHP;
+            context.Body.bodyType = RigidbodyType2D.Dynamic;
+            context.Body.velocity = Vector2.zero;
+            context.Transform.position = spawnPosition;
+            context.InvulnerabilityTimer = context.InvulnerabilityDuration;
+            // The vendor Animator Controller's Death state has no outgoing transitions of
+            // its own (m_Transitions: [] - it's only ever meant to be a dead end), so
+            // ChangeState(Idle) alone leaves the Animator frozen on Death's last frame even
+            // though the C# state machine has already moved on. A dedicated Respawn trigger,
+            // wired by HeroKnightSandboxSetup.AddDeathRespawnToAnimator(), forces it out -
+            // same fix as LedgeGrab's missing exit transition.
+            context.Animator.SetTrigger("Respawn");
+            ChangeState(Idle);
         }
     }
 }

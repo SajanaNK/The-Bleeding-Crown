@@ -214,8 +214,8 @@ public static class HeroKnightSandboxSetup
         // decides to climb or drop -- immune to this kind of stale-value race.
         AnimatorState idleState = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "Idle");
         AnimatorState fallState = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "Fall");
-        AddLedgeGrabExitTransition(state, idleState, AnimatorConditionMode.If, "LedgeClimb", 0f);
-        AddLedgeGrabExitTransition(state, fallState, AnimatorConditionMode.If, "LedgeDrop", 0f);
+        AddOneShotExitTransition(state, idleState, AnimatorConditionMode.If, "LedgeClimb", 0f);
+        AddOneShotExitTransition(state, fallState, AnimatorConditionMode.If, "LedgeDrop", 0f);
 
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
@@ -232,7 +232,7 @@ public static class HeroKnightSandboxSetup
         }
     }
 
-    private static void AddLedgeGrabExitTransition(AnimatorState from, AnimatorState to, AnimatorConditionMode mode, string parameter, float threshold)
+    private static void AddOneShotExitTransition(AnimatorState from, AnimatorState to, AnimatorConditionMode mode, string parameter, float threshold)
     {
         if (to == null)
         {
@@ -255,6 +255,35 @@ public static class HeroKnightSandboxSetup
         transition.hasExitTime = false;
         transition.hasFixedDuration = false;
         transition.interruptionSource = TransitionInterruptionSource.None;
+    }
+
+    [MenuItem("HeroKnightSandbox/7 Add Death Respawn To Animator")]
+    public static void AddDeathRespawnToAnimator()
+    {
+        var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+        if (controller == null)
+        {
+            throw new System.Exception("Animator controller not found at " + ControllerPath);
+        }
+
+        AddTriggerParameterIfMissing(controller, "Respawn");
+
+        AnimatorStateMachine sm = controller.layers[0].stateMachine;
+        AnimatorState deathState = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "Death");
+        AnimatorState idleState = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "Idle");
+        if (deathState == null)
+        {
+            throw new System.Exception("Animator state not found: Death");
+        }
+
+        // Death has no outgoing transitions in the vendor controller (it's a dead end for
+        // enemies, which get destroyed instead of leaving it) - see Respawn()'s comment.
+        AddOneShotExitTransition(deathState, idleState, AnimatorConditionMode.If, "Respawn", 0f);
+
+        EditorUtility.SetDirty(controller);
+        AssetDatabase.SaveAssets();
+
+        Debug.Log("HeroKnightSandboxSetup: Death/Respawn animator transition ready");
     }
 
     [MenuItem("HeroKnightSandbox/3 Build Scene")]
@@ -628,6 +657,7 @@ public static class HeroKnightSandboxSetup
     {
         BuildPrefab();
         AddLedgeGrabToAnimator();
+        AddDeathRespawnToAnimator();
         BuildScene();
         FinalizeProjectSettings();
         BuildEnemies();

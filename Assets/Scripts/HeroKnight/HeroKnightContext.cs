@@ -46,6 +46,7 @@ namespace HeroKnightSandbox
         public float InvulnerabilityDuration = 0.5f;
         public float HurtDuration = 0.3f;
         public float InvulnerabilityTimer = 0f;
+        public float DeathDuration = 1.0f;
 
         public bool IsInvulnerable => InvulnerabilityTimer > 0f;
 
