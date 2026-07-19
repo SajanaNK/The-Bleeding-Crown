@@ -39,6 +39,7 @@ namespace HeroKnightSandbox
         public RollState Roll { get; private set; }
         public BlockState Block { get; private set; }
         public AttackState Attack { get; private set; }
+        public HurtState Hurt { get; private set; }
 
         private void Awake()
         {
@@ -67,6 +68,9 @@ namespace HeroKnightSandbox
             Roll = new RollState(this, context);
             Block = new BlockState(this, context);
             Attack = new AttackState(this, context);
+            Hurt = new HurtState(this, context);
+
+            context.CurrentHP = context.MaxHP;
         }
 
         private void Start()
@@ -77,6 +81,11 @@ namespace HeroKnightSandbox
         private void Update()
         {
             context.TimeSinceAttack += Time.deltaTime;
+            if (context.InvulnerabilityTimer > 0f)
+            {
+                context.InvulnerabilityTimer -= Time.deltaTime;
+            }
+
             context.Animator.SetBool("Grounded", context.IsGrounded);
             currentState.Tick();
         }
@@ -91,6 +100,18 @@ namespace HeroKnightSandbox
             currentState?.Exit();
             currentState = next;
             currentState.Enter();
+        }
+
+        public void TakeDamage(int amount)
+        {
+            if (context.IsInvulnerable || currentState == Hurt)
+            {
+                return;
+            }
+
+            context.CurrentHP -= amount;
+            context.InvulnerabilityTimer = context.InvulnerabilityDuration;
+            ChangeState(Hurt);
         }
     }
 }

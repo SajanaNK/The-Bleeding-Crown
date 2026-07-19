@@ -39,6 +39,16 @@ namespace HeroKnightSandbox
         public float AttackComboResetWindow = 1.0f;
         public int FacingDirection = 1;
 
+        public int MaxHP = 5;
+        public int CurrentHP;
+        public int AttackDamage = 1;
+        public float AttackHitRadius = 1.0f;
+        public float InvulnerabilityDuration = 0.5f;
+        public float HurtDuration = 0.3f;
+        public float InvulnerabilityTimer = 0f;
+
+        public bool IsInvulnerable => InvulnerabilityTimer > 0f;
+
         public bool IsGrounded => GroundSensor.State();
 
         public bool IsWallSliding =>
