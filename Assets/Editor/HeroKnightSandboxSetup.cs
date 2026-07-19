@@ -68,6 +68,7 @@ public static class HeroKnightSandboxSetup
     private const string HeavyEnemyDestPrefabPath = "Assets/Prefabs/HeroKnightHeavyEnemy.prefab";
     private const string ProjectileSpritePath = "Assets/FlexUnit/2DMedievalWeaponPack/LQ/Sprites/Bow/Arrow.png";
     private const string NaturePalettePath = "Assets/Nature_pixel_art_assets/palette/Nature_environment_01.prefab";
+    private const string NaturePropsFolder = "Assets/Nature_pixel_art_assets/Prefabs/Nature_props/";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -688,6 +689,87 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: ranged enemy built");
     }
 
+    [MenuItem("HeroKnightSandbox/8 Build Terrain Decoration")]
+    public static void BuildTerrainDecoration()
+    {
+        GameObject terrain = GameObject.Find("Terrain");
+        if (terrain == null)
+        {
+            throw new System.Exception("Terrain instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        // Destroy-and-recreate (see CreateEnemy's own comment on this convention) so a
+        // rerun never leaves stale duplicate prop instances alongside freshly placed ones.
+        Transform existing = terrain.transform.Find("Decoration");
+        if (existing != null)
+        {
+            Object.DestroyImmediate(existing.gameObject);
+        }
+
+        GameObject decoration = new GameObject("Decoration");
+        decoration.transform.SetParent(terrain.transform, false);
+
+        // Starting-camp cluster near player spawn (-3, 0.5 - see BuildScene()), on the
+        // open left stretch of Ground (top y=0) before Enemy_1's patrol zone (x 2.5-5.5).
+        PlaceProp(decoration.transform, 28, -5f, 0f);
+        PlaceProp(decoration.transform, 40, -4f, 0f); // pink flowering bush - sprite index 0 is prefab 40, see PlaceProp's mapping note
+        PlaceProp(decoration.transform, 38, -2f, 0f);
+        PlaceProp(decoration.transform, 39, -1f, 0f);
+
+        // Between Enemy_1 and Enemy_2 (x 5.5-9.5), under/around JumpPlatform.
+        PlaceProp(decoration.transform, 16, 6f, 0f);
+        PlaceProp(decoration.transform, 11, 6.8f, 0f);
+
+        // Between Enemy_2 and RangedEnemy_1 (x 12.5-15).
+        PlaceProp(decoration.transform, 27, 13f, 0f);
+        PlaceProp(decoration.transform, 21, 14f, 0f);
+        PlaceProp(decoration.transform, 9, 13.7f, 0f);
+
+        // Past RangedEnemy_1, marking the edge before the Wall gap (x 17-18).
+        PlaceProp(decoration.transform, 17, 17.3f, 0f);
+        PlaceProp(decoration.transform, 29, 17.7f, 0f);
+
+        // LedgePlatform (top y=6, x 22..28).
+        PlaceProp(decoration.transform, 18, 24f, 6f);
+        PlaceProp(decoration.transform, 12, 26f, 6f);
+
+        // SafetyNet floor (top y=-12, x -5..45) - sparse, just so it's not totally bare
+        // if the player drops all the way down.
+        PlaceProp(decoration.transform, 25, 10f, -12f);
+        PlaceProp(decoration.transform, 15, 30f, -12f);
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: terrain decoration built");
+    }
+
+    // prefabNumber is the Nature_props_NN.prefab file number (1-40), NOT the 0-based
+    // sprite index the pack's internal fileIDs use -- prefab N's m_Sprite fileID maps to
+    // sprite index (N mod 40), so prefab 40 is the only one whose file number doesn't
+    // equal its sprite index (sprite index 0). Every other prop used here (1-39) has
+    // fileNumber == spriteIndex, which is why this method just takes the file number
+    // directly rather than re-deriving it.
+    //
+    // This pack's sprites all have a center pivot (0.5,0.5), not bottom, so placing a
+    // prop directly at a surface's Y would sink it half its own height into the ground.
+    // sprite.bounds.extents.y is already in world units (48 PPU import) and gives that
+    // half-height without hardcoding per-sprite pixel dimensions.
+    private static void PlaceProp(Transform parent, int prefabNumber, float x, float surfaceY)
+    {
+        string path = NaturePropsFolder + "Nature_props_" + prefabNumber.ToString("00") + ".prefab";
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (prefab == null)
+        {
+            Debug.LogWarning("HeroKnightSandboxSetup: prop prefab not found at " + path);
+            return;
+        }
+
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+        SpriteRenderer sr = instance.GetComponent<SpriteRenderer>();
+        sr.sortingOrder = 1;
+        instance.transform.position = new Vector3(x, surfaceY + sr.sprite.bounds.extents.y, 0f);
+    }
+
     [MenuItem("HeroKnightSandbox/Run All")]
     public static void RunAll()
     {
@@ -695,6 +777,7 @@ public static class HeroKnightSandboxSetup
         AddLedgeGrabToAnimator();
         AddDeathRespawnToAnimator();
         BuildScene();
+        BuildTerrainDecoration();
         FinalizeProjectSettings();
         BuildEnemies();
         BuildHeavyEnemy();
