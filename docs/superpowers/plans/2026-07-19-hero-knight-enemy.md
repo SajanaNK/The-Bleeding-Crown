@@ -498,7 +498,7 @@ git commit -m "feat(hero-knight): add enemy state machine (patrol/attack/hurt/de
 
 **Interfaces:**
 - Consumes: `HeroKnightSandbox.Enemy.EnemyRegistry.All`, `EnemyController.Position`/`.TakeDamage(int)`/`EnemyController` (Task 2). `HeroKnightContext.AttackHitRadius`/`.AttackDamage`/`.FacingDirection` (existing/Task 1). `HeroKnightSandbox.HeroKnightController` (existing).
-- Produces: enemy hit-detection in the player's `AttackState`. A new `[MenuItem("HeroKnightSandbox/5 Build Enemies")]` method, called from `RunAll()`, that idempotently creates 2 enemies (instantiated from a new `Assets/Prefabs/Enemy.prefab`, itself built from the vendor `LightBandit.prefab`) with patrol anchors in the currently open `HeroKnightSandbox.unity` scene.
+- Produces: enemy hit-detection in the player's `AttackState`. A new `[MenuItem("HeroKnightSandbox/5 Build Enemies")]` method, called from `RunAll()`, that idempotently creates 2 enemies (instantiated from a new `Assets/Prefabs/HeroKnightEnemy.prefab`, itself built from the vendor `LightBandit.prefab`) with patrol anchors in the currently open `HeroKnightSandbox.unity` scene.
 
 - [ ] **Step 1: Add the enemy-hit check to AttackState**
 
@@ -584,8 +584,10 @@ Add below the existing `private const string PhysicsMaterialPath = ...;` line (c
 
 ```csharp
     private const string EnemySourcePrefabPath = "Assets/Bandits - Pixel Art/Demo/LightBandit.prefab";
-    private const string EnemyDestPrefabPath = "Assets/Prefabs/Enemy.prefab";
+    private const string EnemyDestPrefabPath = "Assets/Prefabs/HeroKnightEnemy.prefab";
 ```
+
+**Corrected after the fact:** the first implementation of this task used `Assets/Prefabs/Enemy.prefab`, which turned out to already be a pre-existing asset from the base 2D Platformer Microgame template (`Platformer.Mechanics.EnemyController`-based, referenced by `SampleScene.unity`). `PrefabUtility.SaveAsPrefabAsset` overwrote it in place, silently corrupting `SampleScene.unity`'s two enemy instances (their `PrefabInstance` modifications pointed at component `fileID`s that no longer existed once the file's contents were replaced). Found during Task 4 playtesting when checking what the Editor session had touched. Fixed by renaming the destination to a path that doesn't collide with any pre-existing asset, and restoring the original `Assets/Prefabs/Enemy.prefab` from git.
 
 - [ ] **Step 3: Add the enemy prefab builder, enemy-instance creator, and menu method**
 
@@ -618,9 +620,19 @@ Add these three methods below the existing `FinalizeProjectSettings()` method (c
     private static void CreateEnemy(string name, GameObject enemyPrefab, Vector2 anchorPosition,
         Vector2 startOffset, Vector2 endOffset, HeroKnightController player)
     {
-        if (GameObject.Find(name) != null)
+        // Destroy-and-recreate rather than skip-if-exists: a rerun must always reconnect
+        // to the current enemyPrefab, matching BuildEnemyPrefab()'s own always-rebuild
+        // convention for the player prefab.
+        GameObject existingEnemy = GameObject.Find(name);
+        if (existingEnemy != null)
         {
-            return;
+            Object.DestroyImmediate(existingEnemy);
+        }
+
+        GameObject existingAnchor = GameObject.Find(name + "_PatrolAnchor");
+        if (existingAnchor != null)
+        {
+            Object.DestroyImmediate(existingAnchor);
         }
 
         GameObject anchorGO = new GameObject(name + "_PatrolAnchor");
@@ -729,7 +741,7 @@ git commit -m "feat(hero-knight): add enemy hit-detection and scene-build automa
 - [ ] **Step 8: Commit**
 
 ```bash
-git add "Assets/Scenes/HeroKnightSandbox.unity" "Assets/Prefabs/Enemy.prefab" "Assets/Prefabs/Enemy.prefab.meta"
+git add "Assets/Scenes/HeroKnightSandbox.unity" "Assets/Prefabs/HeroKnightEnemy.prefab" "Assets/Prefabs/HeroKnightEnemy.prefab.meta"
 git commit -m "feat(hero-knight): build enemies into sandbox scene and tune from playtesting"
 ```
 

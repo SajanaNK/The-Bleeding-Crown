@@ -53,7 +53,16 @@ public static class HeroKnightSandboxSetup
     private const string ScenePath = "Assets/Scenes/HeroKnightSandbox.unity";
     private const string PhysicsMaterialPath = "Assets/Hero Knight - Pixel Art/Environment/Walls_noFriction.physicsMaterial2D";
     private const string EnemySourcePrefabPath = "Assets/Bandits - Pixel Art/Demo/LightBandit.prefab";
-    private const string EnemyDestPrefabPath = "Assets/Prefabs/Enemy.prefab";
+    // Not "Enemy.prefab" - that path was already a pre-existing asset from the base 2D
+    // Platformer Microgame template (Platformer.Mechanics.EnemyController-based, used by
+    // SampleScene.unity). An earlier version of this script wrote to that same path and
+    // silently overwrote the template's prefab in place, corrupting SampleScene.unity's
+    // two enemy instances (their PrefabInstance modifications pointed at component
+    // fileIDs that no longer existed once the file's contents were replaced). Confirmed
+    // by finding SampleScene.unity's own guid reference to the original file. Fixed by
+    // using a distinct filename so this script's output never collides with pre-existing
+    // template assets.
+    private const string EnemyDestPrefabPath = "Assets/Prefabs/HeroKnightEnemy.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -528,9 +537,21 @@ public static class HeroKnightSandboxSetup
     private static void CreateEnemy(string name, GameObject enemyPrefab, Vector2 anchorPosition,
         Vector2 startOffset, Vector2 endOffset, HeroKnightController player)
     {
-        if (GameObject.Find(name) != null)
+        // Destroy-and-recreate rather than skip-if-exists: a rerun must always reconnect
+        // to the current enemyPrefab (e.g. after BuildEnemyPrefab() rebuilds it), matching
+        // BuildPrefab()'s own always-rebuild convention for the player prefab. Skipping
+        // when the name already existed left old instances silently pointing at a stale
+        // or renamed prefab asset.
+        GameObject existingEnemy = GameObject.Find(name);
+        if (existingEnemy != null)
         {
-            return;
+            Object.DestroyImmediate(existingEnemy);
+        }
+
+        GameObject existingAnchor = GameObject.Find(name + "_PatrolAnchor");
+        if (existingAnchor != null)
+        {
+            Object.DestroyImmediate(existingAnchor);
         }
 
         GameObject anchorGO = new GameObject(name + "_PatrolAnchor");
