@@ -32,6 +32,17 @@ namespace HeroKnightSandbox.EditorTools
 /// HeroKnightSandbox.Sensors;` import above — that import silently loses to the
 /// vendor's global class with no compile error, just wrong components wired onto the
 /// prefab. (Found by inspecting the generated prefab's script GUIDs.)
+///
+/// Similarly, this branch's HeroKnightSandbox.Enemy.EnemyController (and its
+/// HurtState/AttackState, which also share names with existing player-side classes)
+/// are referenced unqualified below in reliance on this file having no `using
+/// Platformer.Mechanics;` import. Platformer.Mechanics also declares its own
+/// EnemyController (a different, pre-existing class from the base 2D Platformer
+/// Microgame template). If a `using Platformer.Mechanics;` import is ever added here,
+/// `EnemyController` becomes an ambiguous reference (CS0104) between the two types and
+/// would need to be fully qualified as HeroKnightSandbox.Enemy.EnemyController at its
+/// two use sites in this file (root.AddComponent&lt;EnemyController&gt;() and
+/// enemyGO.GetComponent&lt;EnemyController&gt;()).
 /// </summary>
 public static class HeroKnightSandboxSetup
 {
@@ -502,6 +513,9 @@ public static class HeroKnightSandboxSetup
         {
             Object.DestroyImmediate(demoScript, true);
         }
+
+        Rigidbody2D body = root.GetComponent<Rigidbody2D>();
+        body.bodyType = RigidbodyType2D.Kinematic;
 
         root.AddComponent<EnemyController>();
 
