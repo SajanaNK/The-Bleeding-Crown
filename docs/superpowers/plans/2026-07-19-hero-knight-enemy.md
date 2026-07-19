@@ -22,13 +22,135 @@
 
   Expected: the `grep` produces no output. **Close the Unity Editor GUI first** — a second instance cannot open the same project.
 - Every new `.cs` file gets a paired `.meta` from Unity on the next compile — `git add` both together (already reflected in every task's commit step below).
-- **`PatrolPath` placement, and why it's not a required component on the enemy:** the design doc's `EnemyController` intentionally does **not** declare `[RequireComponent(typeof(Platformer.Mechanics.PatrolPath))]`. `PatrolPath.Mover.Position` is computed as `path.transform.TransformPoint(Vector2.Lerp(startPosition, endPosition, p))` (see `Assets/Scripts/Mechanics/PatrolPath.Mover.cs:32-33`) — a *local* offset from `path.transform`. If `path.transform` were the enemy's own transform, and `PatrolState.Tick()` assigns that same transform's position from the mover every frame, the reference frame the oscillation is measured from shifts every tick, and the enemy drifts instead of patrolling a fixed range. The template's own `Platformer.Mechanics.EnemyController.cs:15` avoids this by keeping `path` as a separate serialized reference, not a required component on the moving object. Task 1 below follows that established, already-working pattern: `EnemyController` gets a `[SerializeField] private Platformer.Mechanics.PatrolPath patrolPath` field pointing at a separate, stationary anchor `GameObject` (created in Task 3's scene automation).
+- **`PatrolPath` placement, and why it's not a required component on the enemy:** the design doc's `EnemyController` intentionally does **not** declare `[RequireComponent(typeof(Platformer.Mechanics.PatrolPath))]`. `PatrolPath.Mover.Position` is computed as `path.transform.TransformPoint(Vector2.Lerp(startPosition, endPosition, p))` (see `Assets/Scripts/Mechanics/PatrolPath.Mover.cs:32-33`) — a *local* offset from `path.transform`. If `path.transform` were the enemy's own transform, and `PatrolState.Tick()` assigns that same transform's position from the mover every frame, the reference frame the oscillation is measured from shifts every tick, and the enemy drifts instead of patrolling a fixed range. The template's own `Platformer.Mechanics.EnemyController.cs:15` avoids this by keeping `path` as a separate serialized reference, not a required component on the moving object. Task 2 below follows that established, already-working pattern: `EnemyController` gets a `[SerializeField] private Platformer.Mechanics.PatrolPath patrolPath` field pointing at a separate, stationary anchor `GameObject` (created in Task 3's scene automation).
 - **Vendor `Bandits - Pixel Art` Animator parameters used** (read from `Assets/Bandits - Pixel Art/Animations/Light Bandit/LightBandit_AnimController.controller` and the demo `Bandit.cs`): `AnimState` (int: 0=Idle, 1=CombatIdle, 2=Run), and triggers `Attack`/`Hurt`/`Death`. `Grounded`/`AirSpeed`/`Jump`/`Recover` exist but are never touched — this enemy is ground-only (see the design doc's Non-goals). Facing flips via `transform.localScale.x` (vendor `Bandit.cs` convention: moving right → `localScale.x = -1`; moving left → `localScale.x = 1`), not `SpriteRenderer.flipX`.
 - **Task 4 (scene wiring) must be run by the user via the Unity Editor menu, not by an agent.** Precedent from the movement-controller plan: `Assets/Editor/HeroKnightSandboxSetup.cs`'s `[MenuItem]` methods were written by an agent but *run* by the user through the Editor's `HeroKnightSandbox` menu, who then reports console errors/screenshots back. Tasks 1–3 (all C# code, including the new automation method itself) can be done by an agentic worker with the compile-check.
 
 ---
 
-### Task 1: Enemy state machine — context, base, registry, states, controller
+### Task 1: Player HP and Hurt state
+
+**Files:**
+- Modify: `Assets/Scripts/HeroKnight/HeroKnightContext.cs`
+- Create: `Assets/Scripts/HeroKnight/States/HurtState.cs`
+- Modify: `Assets/Scripts/HeroKnight/HeroKnightController.cs`
+
+**Interfaces:**
+- Produces additions: `HeroKnightContext.MaxHP`/`.CurrentHP`/`.AttackDamage`/`.AttackHitRadius`/`.InvulnerabilityDuration`/`.HurtDuration`/`.InvulnerabilityTimer`/`.IsInvulnerable`. `HeroKnightSandbox.States.HurtState`. `HeroKnightController.Hurt` (type `PlayerState`) and `public void TakeDamage(int amount)`.
+
+- [ ] **Step 1: Add fields to HeroKnightContext**
+
+In `Assets/Scripts/HeroKnight/HeroKnightContext.cs`, add below the existing `public int FacingDirection = 1;` line (currently line 40), before the blank line and `IsGrounded` property:
+
+```csharp
+        public int MaxHP = 5;
+        public int CurrentHP;
+        public int AttackDamage = 1;
+        public float AttackHitRadius = 1.0f;
+        public float InvulnerabilityDuration = 0.5f;
+        public float HurtDuration = 0.3f;
+        public float InvulnerabilityTimer = 0f;
+
+        public bool IsInvulnerable => InvulnerabilityTimer > 0f;
+```
+
+- [ ] **Step 2: Write HurtState**
+
+```csharp
+// Assets/Scripts/HeroKnight/States/HurtState.cs
+using UnityEngine;
+
+namespace HeroKnightSandbox.States
+{
+    public class HurtState : PlayerState
+    {
+        private float timer;
+
+        public HurtState(HeroKnightController controller, HeroKnightContext context) : base(controller, context) { }
+
+        public override void Enter()
+        {
+            timer = 0f;
+            Context.SetVelocityX(0f);
+            Context.Animator.SetTrigger("Hurt");
+        }
+
+        public override void Tick()
+        {
+            timer += Time.deltaTime;
+            if (timer > Context.HurtDuration)
+            {
+                Controller.ChangeState(Context.IsGrounded
+                    ? (Mathf.Abs(Context.Controls.MoveX) > Mathf.Epsilon ? (PlayerState)Controller.Run : Controller.Idle)
+                    : Controller.Fall);
+            }
+        }
+    }
+}
+```
+
+- [ ] **Step 3: Wire Hurt, HP initialization, invulnerability countdown, and TakeDamage into HeroKnightController**
+
+In `Assets/Scripts/HeroKnight/HeroKnightController.cs`, add below the existing `public AttackState Attack { get; private set; }` line (currently line 41):
+
+```csharp
+        public HurtState Hurt { get; private set; }
+```
+
+In `Awake()`, add below the existing `Attack = new AttackState(this, context);` line (currently line 69), still inside `Awake()`:
+
+```csharp
+            Hurt = new HurtState(this, context);
+
+            context.CurrentHP = context.MaxHP;
+```
+
+Replace the existing `Update()` method (currently lines 77–82):
+
+```csharp
+        private void Update()
+        {
+            context.TimeSinceAttack += Time.deltaTime;
+            if (context.InvulnerabilityTimer > 0f)
+            {
+                context.InvulnerabilityTimer -= Time.deltaTime;
+            }
+
+            context.Animator.SetBool("Grounded", context.IsGrounded);
+            currentState.Tick();
+        }
+```
+
+Add a new public method below the existing `ChangeState` method (currently the last method in the class, ending at line 94):
+
+```csharp
+        public void TakeDamage(int amount)
+        {
+            if (context.IsInvulnerable || currentState == Hurt)
+            {
+                return;
+            }
+
+            context.CurrentHP -= amount;
+            context.InvulnerabilityTimer = context.InvulnerabilityDuration;
+            ChangeState(Hurt);
+        }
+```
+
+- [ ] **Step 4: Compile check**
+
+Run the Global Constraints compile-check command. Expected: no `error CS` lines.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/States/HurtState.cs" "Assets/Scripts/HeroKnight/States/HurtState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightController.cs"
+git commit -m "feat(hero-knight): add player HP, Hurt state, and TakeDamage"
+```
+
+---
+
+### Task 2: Enemy state machine — context, base, registry, states, controller
 
 **Files:**
 - Create: `Assets/Scripts/HeroKnight/Enemy/EnemyContext.cs`
@@ -41,7 +163,7 @@
 - Create: `Assets/Scripts/HeroKnight/Enemy/EnemyController.cs`
 
 **Interfaces:**
-- Consumes: `HeroKnightSandbox.HeroKnightController` (existing, referenced unqualified — `HeroKnightSandbox.Enemy` is nested inside `HeroKnightSandbox`, so no `using` is needed), `Platformer.Mechanics.PatrolPath` (existing).
+- Consumes: `HeroKnightSandbox.HeroKnightController` (existing, referenced unqualified — `HeroKnightSandbox.Enemy` is nested inside `HeroKnightSandbox`, so no `using` is needed) — including its `public void TakeDamage(int amount)` method, added in Task 1 and called directly from `Enemy.AttackState.Tick()` below; **Task 1 must be completed first**, or this task's code will not compile. `Platformer.Mechanics.PatrolPath` (existing).
 - Produces: `HeroKnightSandbox.Enemy.EnemyContext` (public fields: `Transform`, `Animator`, `PatrolPath`, `Player`, `MaxHP`, `CurrentHP`, `MoveSpeed`, `AttackRange`, `AttackDamage`, `AttackWindup`, `AttackCooldown`, `HurtDuration`, `DeathDuration`). `HeroKnightSandbox.Enemy.EnemyState` abstract base. `HeroKnightSandbox.Enemy.EnemyRegistry` static class with `Register`/`Unregister`/`All`. `HeroKnightSandbox.Enemy.PatrolState`/`AttackState`/`HurtState`/`DeadState`. `HeroKnightSandbox.Enemy.EnemyController` — a `MonoBehaviour` with serialized fields `player` (type `HeroKnightController`) and `patrolPath` (type `Platformer.Mechanics.PatrolPath`, wired to a separate anchor object — see Global Constraints), properties `Patrol`/`Attack`/`Hurt`/`Dead` (type `EnemyState`), `public void ChangeState(EnemyState next)`, `public void TakeDamage(int amount)`, `public Vector3 Position`. Task 3 (player `AttackState`) and Task 3 (scene automation) consume `EnemyRegistry.All`/`EnemyController.Position`/`.TakeDamage(int)`/the `player`/`patrolPath` serialized field names by these exact names — do not rename.
 
 - [ ] **Step 1: Write EnemyContext**
@@ -368,128 +490,6 @@ git commit -m "feat(hero-knight): add enemy state machine (patrol/attack/hurt/de
 
 ---
 
-### Task 2: Player HP and Hurt state
-
-**Files:**
-- Modify: `Assets/Scripts/HeroKnight/HeroKnightContext.cs`
-- Create: `Assets/Scripts/HeroKnight/States/HurtState.cs`
-- Modify: `Assets/Scripts/HeroKnight/HeroKnightController.cs`
-
-**Interfaces:**
-- Produces additions: `HeroKnightContext.MaxHP`/`.CurrentHP`/`.AttackDamage`/`.AttackHitRadius`/`.InvulnerabilityDuration`/`.HurtDuration`/`.InvulnerabilityTimer`/`.IsInvulnerable`. `HeroKnightSandbox.States.HurtState`. `HeroKnightController.Hurt` (type `PlayerState`) and `public void TakeDamage(int amount)`.
-
-- [ ] **Step 1: Add fields to HeroKnightContext**
-
-In `Assets/Scripts/HeroKnight/HeroKnightContext.cs`, add below the existing `public int FacingDirection = 1;` line (currently line 40), before the blank line and `IsGrounded` property:
-
-```csharp
-        public int MaxHP = 5;
-        public int CurrentHP;
-        public int AttackDamage = 1;
-        public float AttackHitRadius = 1.0f;
-        public float InvulnerabilityDuration = 0.5f;
-        public float HurtDuration = 0.3f;
-        public float InvulnerabilityTimer = 0f;
-
-        public bool IsInvulnerable => InvulnerabilityTimer > 0f;
-```
-
-- [ ] **Step 2: Write HurtState**
-
-```csharp
-// Assets/Scripts/HeroKnight/States/HurtState.cs
-using UnityEngine;
-
-namespace HeroKnightSandbox.States
-{
-    public class HurtState : PlayerState
-    {
-        private float timer;
-
-        public HurtState(HeroKnightController controller, HeroKnightContext context) : base(controller, context) { }
-
-        public override void Enter()
-        {
-            timer = 0f;
-            Context.SetVelocityX(0f);
-            Context.Animator.SetTrigger("Hurt");
-        }
-
-        public override void Tick()
-        {
-            timer += Time.deltaTime;
-            if (timer > Context.HurtDuration)
-            {
-                Controller.ChangeState(Context.IsGrounded
-                    ? (Mathf.Abs(Context.Controls.MoveX) > Mathf.Epsilon ? (PlayerState)Controller.Run : Controller.Idle)
-                    : Controller.Fall);
-            }
-        }
-    }
-}
-```
-
-- [ ] **Step 3: Wire Hurt, HP initialization, invulnerability countdown, and TakeDamage into HeroKnightController**
-
-In `Assets/Scripts/HeroKnight/HeroKnightController.cs`, add below the existing `public AttackState Attack { get; private set; }` line (currently line 41):
-
-```csharp
-        public HurtState Hurt { get; private set; }
-```
-
-In `Awake()`, add below the existing `Attack = new AttackState(this, context);` line (currently line 69), still inside `Awake()`:
-
-```csharp
-            Hurt = new HurtState(this, context);
-
-            context.CurrentHP = context.MaxHP;
-```
-
-Replace the existing `Update()` method (currently lines 77–82):
-
-```csharp
-        private void Update()
-        {
-            context.TimeSinceAttack += Time.deltaTime;
-            if (context.InvulnerabilityTimer > 0f)
-            {
-                context.InvulnerabilityTimer -= Time.deltaTime;
-            }
-
-            context.Animator.SetBool("Grounded", context.IsGrounded);
-            currentState.Tick();
-        }
-```
-
-Add a new public method below the existing `ChangeState` method (currently the last method in the class, ending at line 94):
-
-```csharp
-        public void TakeDamage(int amount)
-        {
-            if (context.IsInvulnerable || currentState == Hurt)
-            {
-                return;
-            }
-
-            context.CurrentHP -= amount;
-            context.InvulnerabilityTimer = context.InvulnerabilityDuration;
-            ChangeState(Hurt);
-        }
-```
-
-- [ ] **Step 4: Compile check**
-
-Run the Global Constraints compile-check command. Expected: no `error CS` lines.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add "Assets/Scripts/HeroKnight/HeroKnightContext.cs" "Assets/Scripts/HeroKnight/States/HurtState.cs" "Assets/Scripts/HeroKnight/States/HurtState.cs.meta" "Assets/Scripts/HeroKnight/HeroKnightController.cs"
-git commit -m "feat(hero-knight): add player HP, Hurt state, and TakeDamage"
-```
-
----
-
 ### Task 3: Player attack hit-detection and scene automation
 
 **Files:**
@@ -497,7 +497,7 @@ git commit -m "feat(hero-knight): add player HP, Hurt state, and TakeDamage"
 - Modify: `Assets/Editor/HeroKnightSandboxSetup.cs`
 
 **Interfaces:**
-- Consumes: `HeroKnightSandbox.Enemy.EnemyRegistry.All`, `EnemyController.Position`/`.TakeDamage(int)`/`EnemyController` (Task 1). `HeroKnightContext.AttackHitRadius`/`.AttackDamage`/`.FacingDirection` (existing/Task 2). `HeroKnightSandbox.HeroKnightController` (existing).
+- Consumes: `HeroKnightSandbox.Enemy.EnemyRegistry.All`, `EnemyController.Position`/`.TakeDamage(int)`/`EnemyController` (Task 2). `HeroKnightContext.AttackHitRadius`/`.AttackDamage`/`.FacingDirection` (existing/Task 1). `HeroKnightSandbox.HeroKnightController` (existing).
 - Produces: enemy hit-detection in the player's `AttackState`. A new `[MenuItem("HeroKnightSandbox/5 Build Enemies")]` method, called from `RunAll()`, that idempotently creates 2 enemies (instantiated from a new `Assets/Prefabs/Enemy.prefab`, itself built from the vendor `LightBandit.prefab`) with patrol anchors in the currently open `HeroKnightSandbox.unity` scene.
 
 - [ ] **Step 1: Add the enemy-hit check to AttackState**
