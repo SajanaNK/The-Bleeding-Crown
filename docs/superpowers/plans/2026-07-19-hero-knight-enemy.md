@@ -282,6 +282,8 @@ namespace HeroKnightSandbox.Enemy
 }
 ```
 
+**Corrected after the fact:** this task's review (and the final whole-branch review) both flagged that recreating `mover` fresh on every `Enter()` restarts `PatrolPath.Mover`'s real-time-based oscillation from `PatrolPath.startPosition`, so every re-entry into Patrol from Attack/Hurt snaps the enemy back to its patrol range's start point instead of continuing from its actual current position — noted as plan-mandated at the time (matching this exact code) but deferred to playtesting to confirm it actually mattered. Confirmed during Task 4 playtesting ("enemies reset back to the end of the platform terrain" after being attacked). Fixed in `Enter()` by creating `mover` once, guarded by `if (mover == null)`, instead of unconditionally every call — since `Mover.Position` is a pure function of elapsed real time since creation, keeping the same instance alive across state transitions lets the oscillation continue naturally instead of restarting.
+
 - [ ] **Step 5: Write AttackState**
 
 ```csharp

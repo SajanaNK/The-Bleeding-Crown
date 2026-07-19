@@ -10,7 +10,16 @@ namespace HeroKnightSandbox.Enemy
 
         public override void Enter()
         {
-            mover = Context.PatrolPath.CreateMover(Context.MoveSpeed);
+            // Created once and reused across every re-entry (not recreated per Enter()):
+            // Mover's Position is a function of real elapsed time since creation, so a
+            // fresh Mover here would restart the oscillation from PatrolPath.startPosition
+            // every time Patrol resumes after Attack/Hurt, snapping the enemy back to its
+            // patrol range's start point instead of continuing from its current position.
+            if (mover == null)
+            {
+                mover = Context.PatrolPath.CreateMover(Context.MoveSpeed);
+            }
+
             Context.Animator.SetInteger("AnimState", 2);
         }
 
