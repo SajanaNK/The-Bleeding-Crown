@@ -7,6 +7,17 @@ namespace HeroKnightSandbox.Enemy
         [SerializeField] private HeroKnightController player;
         [SerializeField] private Platformer.Mechanics.PatrolPath patrolPath;
 
+        // Defaults match EnemyContext's own field defaults, so existing Light Bandit
+        // prefab instances (serialized before these fields existed) behave identically
+        // once Unity fills them in with these same values. Heavy Bandit overrides them
+        // via CreateEnemy()'s stat parameters.
+        [SerializeField] private int maxHP = 3;
+        [SerializeField] private float moveSpeed = 2.0f;
+        [SerializeField] private int attackDamage = 1;
+        [SerializeField] private float attackRange = 1.0f;
+        [SerializeField] private float attackWindup = 0.4f;
+        [SerializeField] private float attackCooldown = 0.4f;
+
         private EnemyContext context;
         private EnemyState currentState;
 
@@ -23,6 +34,12 @@ namespace HeroKnightSandbox.Enemy
                 Animator = GetComponent<Animator>(),
                 PatrolPath = patrolPath,
                 Player = player,
+                MaxHP = maxHP,
+                MoveSpeed = moveSpeed,
+                AttackDamage = attackDamage,
+                AttackRange = attackRange,
+                AttackWindup = attackWindup,
+                AttackCooldown = attackCooldown,
             };
             context.CurrentHP = context.MaxHP;
 

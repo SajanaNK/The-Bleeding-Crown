@@ -63,6 +63,8 @@ public static class HeroKnightSandboxSetup
     // using a distinct filename so this script's output never collides with pre-existing
     // template assets.
     private const string EnemyDestPrefabPath = "Assets/Prefabs/HeroKnightEnemy.prefab";
+    private const string HeavyEnemySourcePrefabPath = "Assets/Bandits - Pixel Art/Demo/HeavyBandit.prefab";
+    private const string HeavyEnemyDestPrefabPath = "Assets/Prefabs/HeroKnightHeavyEnemy.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -508,14 +510,14 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: project settings finalized");
     }
 
-    private static GameObject BuildEnemyPrefab()
+    private static GameObject BuildEnemyPrefab(string sourcePrefabPath, string destPrefabPath)
     {
         if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
         {
             AssetDatabase.CreateFolder("Assets", "Prefabs");
         }
 
-        GameObject root = PrefabUtility.LoadPrefabContents(EnemySourcePrefabPath);
+        GameObject root = PrefabUtility.LoadPrefabContents(sourcePrefabPath);
 
         var demoScript = root.GetComponent("Bandit");
         if (demoScript != null)
@@ -528,14 +530,15 @@ public static class HeroKnightSandboxSetup
 
         root.AddComponent<EnemyController>();
 
-        PrefabUtility.SaveAsPrefabAsset(root, EnemyDestPrefabPath);
+        PrefabUtility.SaveAsPrefabAsset(root, destPrefabPath);
         PrefabUtility.UnloadPrefabContents(root);
 
-        return AssetDatabase.LoadAssetAtPath<GameObject>(EnemyDestPrefabPath);
+        return AssetDatabase.LoadAssetAtPath<GameObject>(destPrefabPath);
     }
 
     private static void CreateEnemy(string name, GameObject enemyPrefab, Vector2 anchorPosition,
-        Vector2 startOffset, Vector2 endOffset, HeroKnightController player)
+        Vector2 startOffset, Vector2 endOffset, HeroKnightController player,
+        int maxHP = 3, float moveSpeed = 2.0f, int attackDamage = 1)
     {
         // Destroy-and-recreate rather than skip-if-exists: a rerun must always reconnect
         // to the current enemyPrefab (e.g. after BuildEnemyPrefab() rebuilds it), matching
@@ -568,6 +571,9 @@ public static class HeroKnightSandboxSetup
         var so = new SerializedObject(controller);
         so.FindProperty("player").objectReferenceValue = player;
         so.FindProperty("patrolPath").objectReferenceValue = patrolPath;
+        so.FindProperty("maxHP").intValue = maxHP;
+        so.FindProperty("moveSpeed").floatValue = moveSpeed;
+        so.FindProperty("attackDamage").intValue = attackDamage;
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -581,7 +587,7 @@ public static class HeroKnightSandboxSetup
         }
 
         HeroKnightController controller = player.GetComponent<HeroKnightController>();
-        GameObject enemyPrefab = BuildEnemyPrefab();
+        GameObject enemyPrefab = BuildEnemyPrefab(EnemySourcePrefabPath, EnemyDestPrefabPath);
 
         // Both on the flat Ground platform (top at y=0, spans x -6..18 - see BuildScene()),
         // spread apart so one can be tested in isolation before walking further to reach
@@ -594,6 +600,29 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: enemies built");
     }
 
+    [MenuItem("HeroKnightSandbox/6 Build Heavy Enemy")]
+    public static void BuildHeavyEnemy()
+    {
+        GameObject player = GameObject.Find("HeroKnight");
+        if (player == null)
+        {
+            throw new System.Exception("HeroKnight instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        HeroKnightController controller = player.GetComponent<HeroKnightController>();
+        GameObject heavyPrefab = BuildEnemyPrefab(HeavyEnemySourcePrefabPath, HeavyEnemyDestPrefabPath);
+
+        // Placed on JumpPlatform (center 9,2.5, size 3x1 - see BuildScene()), distinct from
+        // both Light Bandits on the flat Ground platform below, so it reads as a separate,
+        // tougher encounter reachable only after a jump.
+        CreateEnemy("HeavyEnemy_1", heavyPrefab, new Vector2(9f, 3f), new Vector2(-1f, 0f), new Vector2(1f, 0f), controller,
+            maxHP: 6, moveSpeed: 1.2f, attackDamage: 2);
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: heavy enemy built");
+    }
+
     [MenuItem("HeroKnightSandbox/Run All")]
     public static void RunAll()
     {
@@ -602,6 +631,7 @@ public static class HeroKnightSandboxSetup
         BuildScene();
         FinalizeProjectSettings();
         BuildEnemies();
+        BuildHeavyEnemy();
     }
 }
 }
