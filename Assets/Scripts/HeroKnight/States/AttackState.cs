@@ -1,3 +1,4 @@
+using HeroKnightSandbox.Enemy;
 using UnityEngine;
 
 namespace HeroKnightSandbox.States
@@ -5,12 +6,16 @@ namespace HeroKnightSandbox.States
     public class AttackState : PlayerState
     {
         private const float ExitDelay = 0.4f;
+        private const float AttackHitWindow = 0.2f;
+
+        private bool hasHitThisSwing;
 
         public AttackState(HeroKnightController controller, HeroKnightContext context) : base(controller, context) { }
 
         public override void Enter()
         {
             Context.SetVelocityX(0f);
+            hasHitThisSwing = false;
 
             Context.ComboCount++;
             if (Context.ComboCount > 3 || Context.TimeSinceAttack > Context.AttackComboResetWindow)
@@ -24,6 +29,12 @@ namespace HeroKnightSandbox.States
 
         public override void Tick()
         {
+            if (!hasHitThisSwing && Context.TimeSinceAttack > AttackHitWindow)
+            {
+                hasHitThisSwing = true;
+                TryHitEnemy();
+            }
+
             if (Context.Controls.AttackPressed && Context.TimeSinceAttack > Context.AttackComboWindow)
             {
                 Controller.ChangeState(Controller.Attack);
@@ -35,6 +46,19 @@ namespace HeroKnightSandbox.States
                 Controller.ChangeState(Context.IsGrounded
                     ? (Mathf.Abs(Context.Controls.MoveX) > Mathf.Epsilon ? (PlayerState)Controller.Run : Controller.Idle)
                     : Controller.Fall);
+            }
+        }
+
+        private void TryHitEnemy()
+        {
+            foreach (EnemyController enemy in EnemyRegistry.All)
+            {
+                float dx = enemy.Position.x - Context.Transform.position.x;
+                if (Mathf.Abs(dx) <= Context.AttackHitRadius && Mathf.Sign(dx) == Context.FacingDirection)
+                {
+                    enemy.TakeDamage(Context.AttackDamage);
+                    return;
+                }
             }
         }
     }

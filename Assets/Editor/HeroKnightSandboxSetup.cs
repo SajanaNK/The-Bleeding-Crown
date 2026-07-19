@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cinemachine;
 using HeroKnightSandbox;
+using HeroKnightSandbox.Enemy;
 using HeroKnightSandbox.Input;
 using HeroKnightSandbox.Sensors;
 using HeroKnightSandbox.UI;
@@ -40,6 +41,8 @@ public static class HeroKnightSandboxSetup
     private const string LedgeClipPath = "Assets/Hero Knight - Pixel Art/Animations/HeroKnight_LedgeGrab.anim";
     private const string ScenePath = "Assets/Scenes/HeroKnightSandbox.unity";
     private const string PhysicsMaterialPath = "Assets/Hero Knight - Pixel Art/Environment/Walls_noFriction.physicsMaterial2D";
+    private const string EnemySourcePrefabPath = "Assets/Bandits - Pixel Art/Demo/LightBandit.prefab";
+    private const string EnemyDestPrefabPath = "Assets/Prefabs/Enemy.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -485,6 +488,77 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: project settings finalized");
     }
 
+    private static GameObject BuildEnemyPrefab()
+    {
+        if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
+        {
+            AssetDatabase.CreateFolder("Assets", "Prefabs");
+        }
+
+        GameObject root = PrefabUtility.LoadPrefabContents(EnemySourcePrefabPath);
+
+        var demoScript = root.GetComponent("Bandit");
+        if (demoScript != null)
+        {
+            Object.DestroyImmediate(demoScript, true);
+        }
+
+        root.AddComponent<EnemyController>();
+
+        PrefabUtility.SaveAsPrefabAsset(root, EnemyDestPrefabPath);
+        PrefabUtility.UnloadPrefabContents(root);
+
+        return AssetDatabase.LoadAssetAtPath<GameObject>(EnemyDestPrefabPath);
+    }
+
+    private static void CreateEnemy(string name, GameObject enemyPrefab, Vector2 anchorPosition,
+        Vector2 startOffset, Vector2 endOffset, HeroKnightController player)
+    {
+        if (GameObject.Find(name) != null)
+        {
+            return;
+        }
+
+        GameObject anchorGO = new GameObject(name + "_PatrolAnchor");
+        anchorGO.transform.position = anchorPosition;
+        Platformer.Mechanics.PatrolPath patrolPath = anchorGO.AddComponent<Platformer.Mechanics.PatrolPath>();
+        patrolPath.startPosition = startOffset;
+        patrolPath.endPosition = endOffset;
+
+        GameObject enemyGO = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab);
+        enemyGO.name = name;
+        enemyGO.transform.position = anchorPosition;
+
+        EnemyController controller = enemyGO.GetComponent<EnemyController>();
+        var so = new SerializedObject(controller);
+        so.FindProperty("player").objectReferenceValue = player;
+        so.FindProperty("patrolPath").objectReferenceValue = patrolPath;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    [MenuItem("HeroKnightSandbox/5 Build Enemies")]
+    public static void BuildEnemies()
+    {
+        GameObject player = GameObject.Find("HeroKnight");
+        if (player == null)
+        {
+            throw new System.Exception("HeroKnight instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        HeroKnightController controller = player.GetComponent<HeroKnightController>();
+        GameObject enemyPrefab = BuildEnemyPrefab();
+
+        // Both on the flat Ground platform (top at y=0, spans x -6..18 - see BuildScene()),
+        // spread apart so one can be tested in isolation before walking further to reach
+        // both at once, without needing a jump/wall-slide/ledge-grab to reach either.
+        CreateEnemy("Enemy_1", enemyPrefab, new Vector2(4f, 0.5f), new Vector2(-1.5f, 0f), new Vector2(1.5f, 0f), controller);
+        CreateEnemy("Enemy_2", enemyPrefab, new Vector2(11f, 0.5f), new Vector2(-1.5f, 0f), new Vector2(1.5f, 0f), controller);
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: enemies built");
+    }
+
     [MenuItem("HeroKnightSandbox/Run All")]
     public static void RunAll()
     {
@@ -492,6 +566,7 @@ public static class HeroKnightSandboxSetup
         AddLedgeGrabToAnimator();
         BuildScene();
         FinalizeProjectSettings();
+        BuildEnemies();
     }
 }
 }
