@@ -12,6 +12,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 namespace HeroKnightSandbox.EditorTools
@@ -66,6 +67,7 @@ public static class HeroKnightSandboxSetup
     private const string HeavyEnemySourcePrefabPath = "Assets/Bandits - Pixel Art/Demo/HeavyBandit.prefab";
     private const string HeavyEnemyDestPrefabPath = "Assets/Prefabs/HeroKnightHeavyEnemy.prefab";
     private const string ProjectileSpritePath = "Assets/FlexUnit/2DMedievalWeaponPack/LQ/Sprites/Bow/Arrow.png";
+    private const string NaturePalettePath = "Assets/Nature_pixel_art_assets/palette/Nature_environment_01.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -303,23 +305,22 @@ public static class HeroKnightSandboxSetup
         mainCam.transform.position = new Vector3(-3f, 2f, -10f);
         mainCam.gameObject.AddComponent<CinemachineBrain>();
 
-        // The vendor "EnvironmentTiles" sheet turned out to be four small, mostly-
-        // transparent architectural decoration pieces (~32px each), not a repeatable
-        // ground texture -- confirmed by inspecting the generated scene's tile sprite
-        // reference and the source PNG. Using a generated solid sprite instead of
-        // guessing at vendor tile indices.
-        Sprite groundSprite = GetOrCreateGroundSprite();
         PhysicsMaterial2D noFriction = AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(PhysicsMaterialPath);
 
         GameObject terrainRoot = new GameObject("Terrain");
 
+        // Collision footprint is owned entirely by these BoxCollider2D calls (unchanged
+        // from before the Nature tileset was added) so it stays 100% reproducible via
+        // RunAll() -- enemy PatrolPath anchors, ledge-grab, and spawn positions all key
+        // off these same rectangles. Visuals are handled separately by a hand-painted
+        // Tilemap (see CreateTerrainTilemap below) rather than by these platforms'
+        // (removed) placeholder SpriteRenderers.
+
         // Flat run: open ground for run/roll testing. Top surface at y = 0.
-        CreatePlatform(terrainRoot.transform, "Ground", new Vector2(6f, -0.5f), new Vector2(24f, 1f),
-            groundSprite, new Color(0.35f, 0.55f, 0.3f), noFriction);
+        CreatePlatform(terrainRoot.transform, "Ground", new Vector2(6f, -0.5f), new Vector2(24f, 1f), noFriction);
 
         // Raised platform: reachable by a jump.
-        CreatePlatform(terrainRoot.transform, "JumpPlatform", new Vector2(9f, 2.5f), new Vector2(3f, 1f),
-            groundSprite, new Color(0.5f, 0.5f, 0.5f), noFriction);
+        CreatePlatform(terrainRoot.transform, "JumpPlatform", new Vector2(9f, 2.5f), new Vector2(3f, 1f), noFriction);
 
         // Wall face: walking off the flat run's right edge (at x=18) leaves 3 full units
         // of open air (x 18-21, nothing there at any height near ground level) before the
@@ -329,17 +330,16 @@ public static class HeroKnightSandboxSetup
         // then extends from y=6 down to y=-10 -- effectively bottomless within this
         // level -- so no fall trajectory across that gap can miss its vertical range
         // and slip past underneath it, whatever the exact fall depth turns out to be.
-        CreatePlatform(terrainRoot.transform, "Wall", new Vector2(21.5f, -2f), new Vector2(1f, 16f),
-            groundSprite, new Color(0.45f, 0.45f, 0.5f), noFriction);
+        CreatePlatform(terrainRoot.transform, "Wall", new Vector2(21.5f, -2f), new Vector2(1f, 16f), noFriction);
 
         // Ledge platform on top of the wall (the wall "ends" here at y=6).
-        CreatePlatform(terrainRoot.transform, "LedgePlatform", new Vector2(25f, 5.5f), new Vector2(6f, 1f),
-            groundSprite, new Color(0.5f, 0.5f, 0.5f), noFriction);
+        CreatePlatform(terrainRoot.transform, "LedgePlatform", new Vector2(25f, 5.5f), new Vector2(6f, 1f), noFriction);
 
         // Safety-net floor, well below the wall's own bottom, in case the character
         // drops straight down through the gap without drifting into the wall at all.
-        CreatePlatform(terrainRoot.transform, "SafetyNet", new Vector2(20f, -12.5f), new Vector2(50f, 1f),
-            groundSprite, new Color(0.3f, 0.3f, 0.35f), noFriction);
+        CreatePlatform(terrainRoot.transform, "SafetyNet", new Vector2(20f, -12.5f), new Vector2(50f, 1f), noFriction);
+
+        CreateTerrainTilemap(terrainRoot.transform);
 
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DestPrefabPath);
         GameObject player = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
@@ -410,56 +410,12 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: scene built at " + ScenePath);
     }
 
-    private static Sprite GetOrCreateGroundSprite()
-    {
-        const string path = "Assets/Prefabs/GroundSprite.png";
-        if (!System.IO.File.Exists(path))
-        {
-            Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
-            Color[] pixels = new Color[16];
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                pixels[i] = Color.white;
-            }
-
-            tex.SetPixels(pixels);
-            tex.Apply();
-
-            byte[] png = tex.EncodeToPNG();
-            System.IO.File.WriteAllBytes(path, png);
-            AssetDatabase.ImportAsset(path);
-        }
-
-        // Re-applied every call (not just on first creation) so a stale asset from an
-        // earlier, differently-configured run of this script still ends up correct.
-        TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(path);
-        importer.textureType = TextureImporterType.Sprite;
-        importer.spriteImportMode = SpriteImportMode.Single;
-        importer.spritePixelsPerUnit = 4;
-        importer.filterMode = FilterMode.Point;
-
-        TextureImporterSettings settings = new TextureImporterSettings();
-        importer.ReadTextureSettings(settings);
-        settings.spriteMeshType = SpriteMeshType.FullRect;
-        importer.SetTextureSettings(settings);
-
-        importer.SaveAndReimport();
-
-        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
-    }
-
     private static void CreatePlatform(Transform parent, string name, Vector2 center, Vector2 size,
-        Sprite sprite, Color color, PhysicsMaterial2D material)
+        PhysicsMaterial2D material)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         go.transform.position = new Vector3(center.x, center.y, 0f);
-
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = sprite;
-        sr.color = color;
-        sr.drawMode = SpriteDrawMode.Sliced;
-        sr.size = size;
 
         BoxCollider2D col = go.AddComponent<BoxCollider2D>();
         col.size = size;
@@ -467,6 +423,56 @@ public static class HeroKnightSandboxSetup
 
         Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Static;
+    }
+
+    // Sets up an empty Grid/Tilemap for hand-painting with the Nature tileset -- this
+    // script only builds the infrastructure and logs the target cell rectangles; the
+    // actual tile placement is done by hand in the Editor via the Tile Palette, since
+    // that's this asset's intended workflow (unlike the code-generated collision
+    // footprint above, which must stay reproducible for the enemy/ledge tuning that
+    // keys off it).
+    //
+    // Grid.cellSize defaults to (1,1,1) and the tileset's sprites are imported at 48
+    // pixels-per-unit for a 48x48 source size, so 1 tile == 1 Unity unit == 1 cell,
+    // lining up directly with the collider rectangles above (all of which are
+    // integer-aligned except JumpPlatform, whose x=9 center with width 3 spans
+    // [7.5, 10.5] -- painting 4 cells (x=7..10) over-covers that platform by 0.5 unit
+    // on each side rather than under-covering, since a visible edge lip is harmless but
+    // a collider extending past the visible tile would look like invisible ground).
+    private static void CreateTerrainTilemap(Transform parent)
+    {
+        GameObject gridGO = new GameObject("TerrainTiles");
+        gridGO.transform.SetParent(parent, false);
+        Grid grid = gridGO.AddComponent<Grid>();
+        grid.cellSize = new Vector3(1f, 1f, 0f);
+
+        GameObject tilemapGO = new GameObject("Ground Tiles");
+        tilemapGO.transform.SetParent(gridGO.transform, false);
+        tilemapGO.AddComponent<Tilemap>();
+        TilemapRenderer renderer = tilemapGO.AddComponent<TilemapRenderer>();
+        renderer.sortingLayerName = "Default";
+        renderer.sortingOrder = 0;
+
+        GameObject palette = AssetDatabase.LoadAssetAtPath<GameObject>(NaturePalettePath);
+        if (palette == null)
+        {
+            Debug.LogWarning("HeroKnightSandboxSetup: Nature tile palette not found at " + NaturePalettePath);
+        }
+        else
+        {
+            EditorApplication.ExecuteMenuItem("Window/2D/Tile Palette");
+            UnityEditor.Tilemaps.GridPaintingState.palette = palette;
+        }
+
+        Debug.Log(
+            "HeroKnightSandboxSetup: 'Ground Tiles' Tilemap created under Terrain/TerrainTiles. " +
+            "Open Window > 2D > Tile Palette, select 'Nature_environment_01', and hand-paint these " +
+            "cell rectangles to match the existing colliders:\n" +
+            "  Ground: x=-6..17, y=-1 (24x1)\n" +
+            "  JumpPlatform: x=7..10, y=2 (4x1, 0.5-unit overhang each side by design)\n" +
+            "  Wall: x=21, y=-10..5 (1x16)\n" +
+            "  LedgePlatform: x=22..27, y=5 (6x1)\n" +
+            "  SafetyNet: x=-5..44, y=-13 (50x1)");
     }
 
     private static VirtualJoystick BuildJoystick(Transform canvasTransform)
