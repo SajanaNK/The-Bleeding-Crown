@@ -1,3 +1,4 @@
+using CodeMonkey.HealthSystemCM;
 using UnityEngine;
 
 namespace HeroKnightSandbox.Enemy
@@ -14,8 +15,7 @@ namespace HeroKnightSandbox.Enemy
         public HeroKnightController Player;
         public Sprite ProjectileSprite;
 
-        public int MaxHP = 3;
-        public int CurrentHP;
+        public HealthSystem Health;
         public float MoveSpeed = 2.0f;
         public float AttackRange = 1.0f;
         public float DetectionRange = 4.0f;

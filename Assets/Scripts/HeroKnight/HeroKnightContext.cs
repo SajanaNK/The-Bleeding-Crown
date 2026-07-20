@@ -1,3 +1,4 @@
+using CodeMonkey.HealthSystemCM;
 using HeroKnightSandbox.Input;
 using HeroKnightSandbox.Sensors;
 using UnityEngine;
@@ -39,8 +40,7 @@ namespace HeroKnightSandbox
         public float AttackComboResetWindow = 1.0f;
         public int FacingDirection = 1;
 
-        public int MaxHP = 5;
-        public int CurrentHP;
+        public HealthSystem Health;
         public int AttackDamage = 1;
         public float AttackHitRadius = 1.0f;
         public float InvulnerabilityDuration = 0.5f;

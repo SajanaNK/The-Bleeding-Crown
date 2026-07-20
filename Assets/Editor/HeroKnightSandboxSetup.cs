@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cinemachine;
+using CodeMonkey.HealthSystemCM;
 using HeroKnightSandbox;
 using HeroKnightSandbox.Enemy;
 using HeroKnightSandbox.Input;
@@ -73,6 +74,8 @@ public static class HeroKnightSandboxSetup
     private const string NaturePropsFolder = "Assets/Nature_pixel_art_assets/Prefabs/Nature_props/";
     private const string CompletionSoundPath = "Assets/Audio/Collectable.wav";
     private const string ConfettiPrefabPath = "Assets/Mod Assets/Particle Prefabs/ConfettiCelebration.prefab";
+    private const string PlayerHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUI.prefab";
+    private const string EnemyHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUIWorldCanvas.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -569,7 +572,11 @@ public static class HeroKnightSandboxSetup
         Rigidbody2D body = root.GetComponent<Rigidbody2D>();
         body.bodyType = RigidbodyType2D.Kinematic;
 
-        root.AddComponent<EnemyController>();
+        EnemyController enemyController = root.AddComponent<EnemyController>();
+        var enemySO = new SerializedObject(enemyController);
+        enemySO.FindProperty("healthBarPrefab").objectReferenceValue =
+            AssetDatabase.LoadAssetAtPath<GameObject>(EnemyHealthBarPrefabPath);
+        enemySO.ApplyModifiedPropertiesWithoutUndo();
 
         PrefabUtility.SaveAsPrefabAsset(root, destPrefabPath);
         PrefabUtility.UnloadPrefabContents(root);
@@ -838,8 +845,10 @@ public static class HeroKnightSandboxSetup
         GameObject hudGO = new GameObject("ObjectivesHUD");
         hudGO.transform.SetParent(canvas.transform, false);
 
-        TextMeshProUGUI enemiesLine = BuildHUDLine(hudGO.transform, "EnemiesLine", new Vector2(20f, -20f));
-        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -50f));
+        // Starts at y=-60 rather than -20 to leave room above for the player health
+        // bar built by BuildPlayerHealthBar().
+        TextMeshProUGUI enemiesLine = BuildHUDLine(hudGO.transform, "EnemiesLine", new Vector2(20f, -60f));
+        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -90f));
         GameObject completePanel = BuildCompletePanel(canvas.transform);
 
         ObjectivesHUD hud = hudGO.AddComponent<ObjectivesHUD>();
@@ -903,31 +912,183 @@ public static class HeroKnightSandboxSetup
         text.color = Color.white;
         text.text = "Sandbox Complete!";
 
-        GameObject buttonGO = new GameObject("RestartButton");
-        buttonGO.transform.SetParent(panelGO.transform, false);
+        BuildMenuButton(panelGO.transform, "RestartButton", new Vector2(0f, -100f), "Restart")
+            .AddComponent<RestartButton>();
+
+        panelGO.SetActive(false);
+        return panelGO;
+    }
+
+    // Reusable button build: a tinted rectangle (same borderless-Image trick used
+    // throughout this file) plus a centered label. Caller adds whichever click-behavior
+    // component (RestartButton, ResumeButton, LoadSceneButton, ...) fits.
+    private static GameObject BuildMenuButton(Transform parent, string name, Vector2 anchoredPos, string label)
+    {
+        GameObject buttonGO = new GameObject(name);
+        buttonGO.transform.SetParent(parent, false);
         RectTransform buttonRT = buttonGO.AddComponent<RectTransform>();
         buttonRT.anchorMin = new Vector2(0.5f, 0.5f);
         buttonRT.anchorMax = new Vector2(0.5f, 0.5f);
         buttonRT.pivot = new Vector2(0.5f, 0.5f);
-        buttonRT.anchoredPosition = new Vector2(0f, -100f);
+        buttonRT.anchoredPosition = anchoredPos;
         buttonRT.sizeDelta = new Vector2(240f, 70f);
         Image buttonImage = buttonGO.AddComponent<Image>();
         buttonImage.color = new Color(1f, 1f, 1f, 0.85f);
         buttonGO.AddComponent<Button>();
-        buttonGO.AddComponent<RestartButton>();
 
-        GameObject buttonTextGO = new GameObject("Text");
-        buttonTextGO.transform.SetParent(buttonGO.transform, false);
-        RectTransform buttonTextRT = buttonTextGO.AddComponent<RectTransform>();
-        buttonTextRT.anchorMin = Vector2.zero;
-        buttonTextRT.anchorMax = Vector2.one;
-        buttonTextRT.offsetMin = Vector2.zero;
-        buttonTextRT.offsetMax = Vector2.zero;
-        TextMeshProUGUI buttonText = buttonTextGO.AddComponent<TextMeshProUGUI>();
-        buttonText.fontSize = 36f;
-        buttonText.alignment = TextAlignmentOptions.Center;
-        buttonText.color = Color.black;
-        buttonText.text = "Restart";
+        GameObject textGO = new GameObject("Text");
+        textGO.transform.SetParent(buttonGO.transform, false);
+        RectTransform textRT = textGO.AddComponent<RectTransform>();
+        textRT.anchorMin = Vector2.zero;
+        textRT.anchorMax = Vector2.one;
+        textRT.offsetMin = Vector2.zero;
+        textRT.offsetMax = Vector2.zero;
+        TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.fontSize = 36f;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = Color.black;
+        text.text = label;
+
+        return buttonGO;
+    }
+
+    [MenuItem("HeroKnightSandbox/12 Build Player Health Bar")]
+    public static void BuildPlayerHealthBar()
+    {
+        GameObject canvas = GameObject.Find("Canvas");
+        if (canvas == null)
+        {
+            throw new System.Exception("Canvas instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        GameObject player = GameObject.Find("HeroKnight");
+        if (player == null)
+        {
+            throw new System.Exception("HeroKnight instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        // Destroy-and-recreate (see CreateEnemy's own comment on this convention) so a
+        // rerun never leaves a stale duplicate bar alongside a fresh one.
+        GameObject existingBar = GameObject.Find("PlayerHealthBar");
+        if (existingBar != null)
+        {
+            Object.DestroyImmediate(existingBar);
+        }
+
+        GameObject barPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerHealthBarPrefabPath);
+        GameObject bar = (GameObject)PrefabUtility.InstantiatePrefab(barPrefab, canvas.transform);
+        bar.name = "PlayerHealthBar";
+
+        // Prefab's own RectTransform is centered (anchor/pivot 0.5,0.5) for its source
+        // demo's layout - repin to the HUD's top-left corner, above the objectives
+        // checklist (see BuildObjectives()'s EnemiesLine/GoalLine y-offsets).
+        RectTransform barRT = bar.GetComponent<RectTransform>();
+        barRT.anchorMin = new Vector2(0f, 1f);
+        barRT.anchorMax = new Vector2(0f, 1f);
+        barRT.pivot = new Vector2(0f, 1f);
+        barRT.anchoredPosition = new Vector2(20f, -20f);
+
+        var barSO = new SerializedObject(bar.GetComponent<HealthBarUI>());
+        barSO.FindProperty("getHealthSystemGameObject").objectReferenceValue = player;
+        barSO.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: player health bar built");
+    }
+
+    [MenuItem("HeroKnightSandbox/13 Build Pause Menu")]
+    public static void BuildPauseMenu()
+    {
+        GameObject canvas = GameObject.Find("Canvas");
+        if (canvas == null)
+        {
+            throw new System.Exception("Canvas instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        // Destroy-and-recreate (see CreateEnemy's own comment on this convention) so a
+        // rerun never leaves stale duplicate instances alongside fresh ones.
+        GameObject existingButton = GameObject.Find("PauseButton");
+        if (existingButton != null)
+        {
+            Object.DestroyImmediate(existingButton);
+        }
+
+        GameObject existingPanel = GameObject.Find("PausePanel");
+        if (existingPanel != null)
+        {
+            Object.DestroyImmediate(existingPanel);
+        }
+
+        GameObject existingController = GameObject.Find("PauseController");
+        if (existingController != null)
+        {
+            Object.DestroyImmediate(existingController);
+        }
+
+        // Top-right corner is the one free spot among the existing bottom-right touch
+        // controls (Jump/Attack/Block/Roll - see BuildScene()/BuildJoystick()).
+        GameObject pauseButtonGO = new GameObject("PauseButton");
+        pauseButtonGO.transform.SetParent(canvas.transform, false);
+        RectTransform pauseButtonRT = pauseButtonGO.AddComponent<RectTransform>();
+        pauseButtonRT.anchorMin = new Vector2(1f, 1f);
+        pauseButtonRT.anchorMax = new Vector2(1f, 1f);
+        pauseButtonRT.pivot = new Vector2(0.5f, 0.5f);
+        pauseButtonRT.anchoredPosition = new Vector2(-70f, -70f);
+        pauseButtonRT.sizeDelta = new Vector2(100f, 100f);
+        Image pauseButtonImage = pauseButtonGO.AddComponent<Image>();
+        pauseButtonImage.color = new Color(1f, 1f, 1f, 0.35f);
+        TouchButton pauseTouchButton = pauseButtonGO.AddComponent<TouchButton>();
+
+        GameObject pausePanel = BuildPausePanel(canvas.transform);
+
+        GameObject controllerGO = new GameObject("PauseController");
+        PauseController pauseController = controllerGO.AddComponent<PauseController>();
+        var pauseSO = new SerializedObject(pauseController);
+        pauseSO.FindProperty("pauseButton").objectReferenceValue = pauseTouchButton;
+        pauseSO.FindProperty("pausePanel").objectReferenceValue = pausePanel;
+        pauseSO.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: pause menu built");
+    }
+
+    private static GameObject BuildPausePanel(Transform canvasTransform)
+    {
+        GameObject panelGO = new GameObject("PausePanel");
+        panelGO.transform.SetParent(canvasTransform, false);
+        RectTransform panelRT = panelGO.AddComponent<RectTransform>();
+        panelRT.anchorMin = Vector2.zero;
+        panelRT.anchorMax = Vector2.one;
+        panelRT.offsetMin = Vector2.zero;
+        panelRT.offsetMax = Vector2.zero;
+        Image dim = panelGO.AddComponent<Image>();
+        dim.color = new Color(0f, 0f, 0f, 0.6f);
+
+        GameObject textGO = new GameObject("PausedText");
+        textGO.transform.SetParent(panelGO.transform, false);
+        RectTransform textRT = textGO.AddComponent<RectTransform>();
+        textRT.anchorMin = new Vector2(0.5f, 0.5f);
+        textRT.anchorMax = new Vector2(0.5f, 0.5f);
+        textRT.pivot = new Vector2(0.5f, 0.5f);
+        textRT.anchoredPosition = new Vector2(0f, 180f);
+        textRT.sizeDelta = new Vector2(800f, 150f);
+        TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.fontSize = 64f;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = Color.white;
+        text.text = "Paused";
+
+        BuildMenuButton(panelGO.transform, "ResumeButton", new Vector2(0f, 40f), "Resume")
+            .AddComponent<ResumeButton>();
+        BuildMenuButton(panelGO.transform, "RestartButton", new Vector2(0f, -60f), "Restart")
+            .AddComponent<RestartButton>();
+
+        GameObject quitButton = BuildMenuButton(panelGO.transform, "QuitButton", new Vector2(0f, -160f), "Quit to Start Screen");
+        var quitSO = new SerializedObject(quitButton.AddComponent<LoadSceneButton>());
+        quitSO.FindProperty("sceneName").stringValue = "StartScreen";
+        quitSO.ApplyModifiedPropertiesWithoutUndo();
 
         panelGO.SetActive(false);
         return panelGO;
@@ -946,6 +1107,8 @@ public static class HeroKnightSandboxSetup
         BuildHeavyEnemy();
         BuildRangedEnemy();
         BuildObjectives();
+        BuildPlayerHealthBar();
+        BuildPauseMenu();
     }
 }
 }

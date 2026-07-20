@@ -1,8 +1,10 @@
+using CodeMonkey.HealthSystemCM;
+using HeroKnightSandbox.Health;
 using UnityEngine;
 
 namespace HeroKnightSandbox.Enemy
 {
-    public class EnemyController : MonoBehaviour
+    public class EnemyController : MonoBehaviour, IGetHealthSystem
     {
         [SerializeField] private HeroKnightController player;
         [SerializeField] private Platformer.Mechanics.PatrolPath patrolPath;
@@ -23,6 +25,7 @@ namespace HeroKnightSandbox.Enemy
         // Default false, so existing melee prefab instances are unaffected.
         [SerializeField] private bool ranged;
         [SerializeField] private Sprite projectileSprite;
+        [SerializeField] private GameObject healthBarPrefab;
 
         private EnemyContext context;
         private EnemyState currentState;
@@ -42,7 +45,6 @@ namespace HeroKnightSandbox.Enemy
                 PatrolPath = patrolPath,
                 Player = player,
                 ProjectileSprite = projectileSprite,
-                MaxHP = maxHP,
                 MoveSpeed = moveSpeed,
                 AttackDamage = attackDamage,
                 AttackRange = attackRange,
@@ -50,7 +52,7 @@ namespace HeroKnightSandbox.Enemy
                 AttackCooldown = attackCooldown,
                 DetectionRange = detectionRange,
             };
-            context.CurrentHP = context.MaxHP;
+            context.Health = new HealthSystem(maxHP);
 
             Patrol = new PatrolState(this, context);
             Chase = new ChaseState(this, context);
@@ -72,6 +74,16 @@ namespace HeroKnightSandbox.Enemy
         private void Start()
         {
             ChangeState(Patrol);
+
+            if (healthBarPrefab != null)
+            {
+                GameObject bar = Instantiate(healthBarPrefab);
+                bar.AddComponent<EnemyHealthBarFollow>().Target = transform;
+                // No getHealthSystemGameObject to assign ahead of time (this instance
+                // doesn't exist until now) - CodeMonkey's HealthBarUI supports wiring
+                // it directly instead; see its own SerializeField tooltip.
+                bar.GetComponentInChildren<HealthBarUI>().SetHealthSystem(context.Health);
+            }
         }
 
         private void Update()
@@ -93,8 +105,8 @@ namespace HeroKnightSandbox.Enemy
                 return;
             }
 
-            context.CurrentHP -= amount;
-            if (context.CurrentHP <= 0)
+            context.Health.Damage(amount);
+            if (context.Health.IsDead())
             {
                 ChangeState(Dead);
             }
@@ -103,6 +115,8 @@ namespace HeroKnightSandbox.Enemy
                 ChangeState(Hurt);
             }
         }
+
+        public HealthSystem GetHealthSystem() => context.Health;
 
         public Vector3 Position => context.Transform.position;
     }

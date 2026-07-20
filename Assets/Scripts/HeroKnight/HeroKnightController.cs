@@ -1,3 +1,4 @@
+using CodeMonkey.HealthSystemCM;
 using HeroKnightSandbox.Input;
 using HeroKnightSandbox.Sensors;
 using HeroKnightSandbox.States;
@@ -8,7 +9,7 @@ namespace HeroKnightSandbox
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(SpriteRenderer))]
-    public class HeroKnightController : MonoBehaviour
+    public class HeroKnightController : MonoBehaviour, IGetHealthSystem
     {
         [SerializeField] private TouchHeroKnightInput input;
         // Fully qualified rather than relying on the `using HeroKnightSandbox.Sensors;`
@@ -84,9 +85,11 @@ namespace HeroKnightSandbox
             Hurt = new HurtState(this, context);
             Death = new DeathState(this, context);
 
-            context.CurrentHP = context.MaxHP;
+            context.Health = new HealthSystem(5f);
             spawnPosition = transform.position;
         }
+
+        public HealthSystem GetHealthSystem() => context.Health;
 
         private void Start()
         {
@@ -124,8 +127,8 @@ namespace HeroKnightSandbox
                 return;
             }
 
-            context.CurrentHP -= amount;
-            if (context.CurrentHP <= 0)
+            context.Health.Damage(amount);
+            if (context.Health.IsDead())
             {
                 ChangeState(Death);
                 return;
@@ -137,7 +140,7 @@ namespace HeroKnightSandbox
 
         public void Respawn()
         {
-            context.CurrentHP = context.MaxHP;
+            context.Health.HealComplete();
             context.Body.bodyType = RigidbodyType2D.Dynamic;
             context.Body.velocity = Vector2.zero;
             context.Transform.position = spawnPosition;

@@ -205,6 +205,8 @@ MonoBehaviour:
   detectionRange: 4
   ranged: 0
   projectileSprite: {fileID: 0}
+  healthBarPrefab: {fileID: 6848739074368699834, guid: f1419c2a3f5ecf44e824039f908fea60,
+    type: 3}
 --- !u!1 &1486116900041161734
 GameObject:
   m_ObjectHideFlags: 0

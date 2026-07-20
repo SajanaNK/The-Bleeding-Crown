@@ -19,6 +19,9 @@ namespace HeroKnightSandbox.Objectives
 
         private void Restart()
         {
+            // Time.timeScale persists across scene loads, so if this is clicked from the
+            // Pause menu (timeScale 0) the reloaded scene would start out frozen.
+            Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }
