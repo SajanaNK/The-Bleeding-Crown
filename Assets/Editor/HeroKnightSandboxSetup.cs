@@ -71,6 +71,8 @@ public static class HeroKnightSandboxSetup
     private const string ProjectileSpritePath = "Assets/FlexUnit/2DMedievalWeaponPack/LQ/Sprites/Bow/Arrow.png";
     private const string NaturePalettePath = "Assets/Nature_pixel_art_assets/palette/Nature_environment_01.prefab";
     private const string NaturePropsFolder = "Assets/Nature_pixel_art_assets/Prefabs/Nature_props/";
+    private const string CompletionSoundPath = "Assets/Audio/Collectable.wav";
+    private const string ConfettiPrefabPath = "Assets/Mod Assets/Particle Prefabs/ConfettiCelebration.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -787,6 +789,12 @@ public static class HeroKnightSandboxSetup
             throw new System.Exception("Canvas instance not found in the open scene - run '3 Build Scene' first");
         }
 
+        GameObject player = GameObject.Find("HeroKnight");
+        if (player == null)
+        {
+            throw new System.Exception("HeroKnight instance not found in the open scene - run '3 Build Scene' first");
+        }
+
         // Destroy-and-recreate (see CreateEnemy's own comment on this convention) so a
         // rerun never leaves stale duplicate objectives instances alongside fresh ones.
         GameObject existingController = GameObject.Find("ObjectivesController");
@@ -805,6 +813,12 @@ public static class HeroKnightSandboxSetup
         if (existingHUD != null)
         {
             Object.DestroyImmediate(existingHUD);
+        }
+
+        GameObject existingCompletePanel = GameObject.Find("CompletePanel");
+        if (existingCompletePanel != null)
+        {
+            Object.DestroyImmediate(existingCompletePanel);
         }
 
         GameObject controllerGO = new GameObject("ObjectivesController");
@@ -833,6 +847,9 @@ public static class HeroKnightSandboxSetup
         hudSO.FindProperty("enemiesLine").objectReferenceValue = enemiesLine;
         hudSO.FindProperty("goalLine").objectReferenceValue = goalLine;
         hudSO.FindProperty("completePanel").objectReferenceValue = completePanel;
+        hudSO.FindProperty("completionSound").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>(CompletionSoundPath);
+        hudSO.FindProperty("confettiPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(ConfettiPrefabPath);
+        hudSO.FindProperty("player").objectReferenceValue = player.transform;
         hudSO.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
@@ -885,6 +902,32 @@ public static class HeroKnightSandboxSetup
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
         text.text = "Sandbox Complete!";
+
+        GameObject buttonGO = new GameObject("RestartButton");
+        buttonGO.transform.SetParent(panelGO.transform, false);
+        RectTransform buttonRT = buttonGO.AddComponent<RectTransform>();
+        buttonRT.anchorMin = new Vector2(0.5f, 0.5f);
+        buttonRT.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonRT.pivot = new Vector2(0.5f, 0.5f);
+        buttonRT.anchoredPosition = new Vector2(0f, -100f);
+        buttonRT.sizeDelta = new Vector2(240f, 70f);
+        Image buttonImage = buttonGO.AddComponent<Image>();
+        buttonImage.color = new Color(1f, 1f, 1f, 0.85f);
+        buttonGO.AddComponent<Button>();
+        buttonGO.AddComponent<RestartButton>();
+
+        GameObject buttonTextGO = new GameObject("Text");
+        buttonTextGO.transform.SetParent(buttonGO.transform, false);
+        RectTransform buttonTextRT = buttonTextGO.AddComponent<RectTransform>();
+        buttonTextRT.anchorMin = Vector2.zero;
+        buttonTextRT.anchorMax = Vector2.one;
+        buttonTextRT.offsetMin = Vector2.zero;
+        buttonTextRT.offsetMax = Vector2.zero;
+        TextMeshProUGUI buttonText = buttonTextGO.AddComponent<TextMeshProUGUI>();
+        buttonText.fontSize = 36f;
+        buttonText.alignment = TextAlignmentOptions.Center;
+        buttonText.color = Color.black;
+        buttonText.text = "Restart";
 
         panelGO.SetActive(false);
         return panelGO;

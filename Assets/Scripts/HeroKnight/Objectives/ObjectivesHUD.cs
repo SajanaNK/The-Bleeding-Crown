@@ -12,6 +12,9 @@ namespace HeroKnightSandbox.Objectives
         [SerializeField] private TextMeshProUGUI enemiesLine;
         [SerializeField] private TextMeshProUGUI goalLine;
         [SerializeField] private GameObject completePanel;
+        [SerializeField] private AudioClip completionSound;
+        [SerializeField] private GameObject confettiPrefab;
+        [SerializeField] private Transform player;
 
         private bool completeShown;
 
@@ -32,6 +35,14 @@ namespace HeroKnightSandbox.Objectives
             {
                 completeShown = true;
                 completePanel.SetActive(true);
+                AudioSource.PlayClipAtPoint(completionSound, player.position);
+                // ConfettiCelebration.prefab's particle systems have playOnAwake off (this
+                // asset pack's convention - see EmitParticlesOnLand.cs elsewhere in the
+                // project), so instantiating alone doesn't start it; Play() must be called
+                // explicitly. withChildren defaults true, so this also starts the
+                // "RainbowLines" child system.
+                GameObject confetti = Instantiate(confettiPrefab, player.position, Quaternion.identity);
+                confetti.GetComponent<ParticleSystem>().Play();
             }
         }
     }
