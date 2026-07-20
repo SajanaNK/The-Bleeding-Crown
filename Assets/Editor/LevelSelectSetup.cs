@@ -1,3 +1,4 @@
+using System.Linq;
 using HeroKnightSandbox.UI;
 using TMPro;
 using UnityEditor;
@@ -10,17 +11,16 @@ using UnityEngine.UI;
 namespace HeroKnightSandbox.EditorTools
 {
 /// <summary>
-/// Builds the title/start screen scene that boots before HeroKnightSandbox.unity.
-/// Run via HeroKnightSandbox/11 Build Start Screen. Safe to re-run: overwrites its
-/// own output each time, same convention as HeroKnightSandboxSetup.
+/// Builds the level-select scene between the Start Screen and the playable levels.
+/// Run via HeroKnightSandbox/12 Build Level Select. Safe to re-run: overwrites its
+/// own output each time, same convention as HeroKnightSandboxSetup/StartScreenSetup.
 /// </summary>
-public static class StartScreenSetup
+public static class LevelSelectSetup
 {
-    private const string ScenePath = "Assets/Scenes/StartScreen.unity";
-    private const string LevelSelectSceneName = "LevelSelect";
+    private const string ScenePath = "Assets/Scenes/LevelSelect.unity";
 
-    [MenuItem("HeroKnightSandbox/11 Build Start Screen")]
-    public static void BuildStartScreen()
+    [MenuItem("HeroKnightSandbox/14 Build Level Select")]
+    public static void BuildLevelSelect()
     {
         if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
         {
@@ -54,26 +54,34 @@ public static class StartScreenSetup
         titleRT.anchorMin = new Vector2(0.5f, 0.5f);
         titleRT.anchorMax = new Vector2(0.5f, 0.5f);
         titleRT.pivot = new Vector2(0.5f, 0.5f);
-        titleRT.anchoredPosition = new Vector2(0f, 200f);
-        titleRT.sizeDelta = new Vector2(1000f, 200f);
+        titleRT.anchoredPosition = new Vector2(0f, 220f);
+        titleRT.sizeDelta = new Vector2(1000f, 150f);
         TextMeshProUGUI titleText = titleGO.AddComponent<TextMeshProUGUI>();
-        titleText.fontSize = 96f;
+        titleText.fontSize = 72f;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.color = Color.white;
-        titleText.text = "Hero Knight Sandbox";
+        titleText.text = "Select Level";
 
-        GameObject playButton = BuildButton(canvasGO.transform, "PlayButton", new Vector2(0f, 0f), "Play");
-        var playSO = new SerializedObject(playButton.AddComponent<LoadSceneButton>());
-        playSO.FindProperty("sceneName").stringValue = LevelSelectSceneName;
-        playSO.ApplyModifiedPropertiesWithoutUndo();
+        BuildLevelButton(canvasGO.transform, new Vector2(0f, 40f), "Level 1", "HeroKnightSandbox");
+        BuildLevelButton(canvasGO.transform, new Vector2(0f, -60f), "Level 2", "Level2");
 
-        BuildButton(canvasGO.transform, "QuitButton", new Vector2(0f, -110f), "Quit")
-            .AddComponent<QuitGameButton>();
+        GameObject backButton = BuildButton(canvasGO.transform, "BackButton", new Vector2(0f, -180f), "Back");
+        var backSO = new SerializedObject(backButton.AddComponent<LoadSceneButton>());
+        backSO.FindProperty("sceneName").stringValue = "StartScreen";
+        backSO.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.SaveScene(scene, ScenePath);
-        LevelSelectSetup.RegisterAllScenes();
+        RegisterAllScenes();
 
-        Debug.Log("HeroKnightSandboxSetup: start screen built at " + ScenePath);
+        Debug.Log("HeroKnightSandboxSetup: level select built at " + ScenePath);
+    }
+
+    private static void BuildLevelButton(Transform canvasTransform, Vector2 anchoredPos, string label, string sceneName)
+    {
+        GameObject button = BuildButton(canvasTransform, label.Replace(" ", "") + "Button", anchoredPos, label);
+        var so = new SerializedObject(button.AddComponent<LoadSceneButton>());
+        so.FindProperty("sceneName").stringValue = sceneName;
+        so.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static GameObject BuildButton(Transform parent, string name, Vector2 anchoredPos, string label)
@@ -104,6 +112,29 @@ public static class StartScreenSetup
         text.text = label;
 
         return buttonGO;
+    }
+
+    // Single authoritative place for Build Settings scene order across the whole
+    // menu flow - SceneManager.LoadScene(string) requires every target scene to be
+    // registered here (true in Editor Play Mode, not just real builds), and with
+    // four scenes now wired together by name from three different setup scripts,
+    // having each script independently insert/reorder its own entry risked
+    // producing a different final order depending on which setup step ran last.
+    // This instead unconditionally rebuilds the whole list in one fixed order, so
+    // it's safe to call from any of the setup scripts in any order.
+    public static void RegisterAllScenes()
+    {
+        string[] orderedPaths =
+        {
+            "Assets/Scenes/StartScreen.unity",
+            "Assets/Scenes/LevelSelect.unity",
+            "Assets/Scenes/HeroKnightSandbox.unity",
+            "Assets/Scenes/Level2.unity",
+        };
+
+        EditorBuildSettings.scenes = orderedPaths
+            .Select(path => new EditorBuildSettingsScene(path, true))
+            .ToArray();
     }
 }
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using Cinemachine;
 using CodeMonkey.HealthSystemCM;
@@ -76,6 +75,7 @@ public static class HeroKnightSandboxSetup
     private const string ConfettiPrefabPath = "Assets/Mod Assets/Particle Prefabs/ConfettiCelebration.prefab";
     private const string PlayerHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUI.prefab";
     private const string EnemyHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUIWorldCanvas.prefab";
+    private const string TerrainTilesPrefabPath = "Assets/Prefabs/Level1_TerrainTiles.prefab";
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -418,6 +418,32 @@ public static class HeroKnightSandboxSetup
         Debug.Log("HeroKnightSandboxSetup: scene built at " + ScenePath);
     }
 
+    [MenuItem("HeroKnightSandbox/3b Save Terrain Tiles")]
+    public static void SaveTerrainTiles()
+    {
+        GameObject terrain = GameObject.Find("Terrain");
+        if (terrain == null)
+        {
+            throw new System.Exception("Terrain instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        Transform tiles = terrain.transform.Find("TerrainTiles");
+        if (tiles == null)
+        {
+            throw new System.Exception("TerrainTiles not found under Terrain - run '3 Build Scene' first");
+        }
+
+        if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
+        {
+            AssetDatabase.CreateFolder("Assets", "Prefabs");
+        }
+
+        PrefabUtility.SaveAsPrefabAsset(tiles.gameObject, TerrainTilesPrefabPath);
+
+        Debug.Log("HeroKnightSandboxSetup: terrain tiles saved to " + TerrainTilesPrefabPath +
+                   " - future '3 Build Scene' runs restore them automatically instead of starting empty");
+    }
+
     private static void CreatePlatform(Transform parent, string name, Vector2 center, Vector2 size,
         PhysicsMaterial2D material)
     {
@@ -433,12 +459,14 @@ public static class HeroKnightSandboxSetup
         rb.bodyType = RigidbodyType2D.Static;
     }
 
-    // Sets up an empty Grid/Tilemap for hand-painting with the Nature tileset -- this
-    // script only builds the infrastructure and logs the target cell rectangles; the
-    // actual tile placement is done by hand in the Editor via the Tile Palette, since
-    // that's this asset's intended workflow (unlike the code-generated collision
-    // footprint above, which must stay reproducible for the enemy/ledge tuning that
-    // keys off it).
+    // Sets up a Grid/Tilemap for hand-painting with the Nature tileset -- the actual
+    // tile placement is done by hand in the Editor via the Tile Palette, since that's
+    // this asset's intended workflow (unlike the code-generated collision footprint
+    // above, which must stay reproducible for the enemy/ledge tuning that keys off
+    // it). Once painted tiles exist at TerrainTilesPrefabPath (see SaveTerrainTiles()
+    // below), reruns restore them here instead of leaving an empty grid -- BuildScene()
+    // wipes the whole scene via NewScene() every time, so without this every Run All
+    // would otherwise mean repainting from scratch.
     //
     // Grid.cellSize defaults to (1,1,1) and the tileset's sprites are imported at 48
     // pixels-per-unit for a 48x48 source size, so 1 tile == 1 Unity unit == 1 cell,
@@ -449,6 +477,14 @@ public static class HeroKnightSandboxSetup
     // a collider extending past the visible tile would look like invisible ground).
     private static void CreateTerrainTilemap(Transform parent)
     {
+        GameObject existingTiles = AssetDatabase.LoadAssetAtPath<GameObject>(TerrainTilesPrefabPath);
+        if (existingTiles != null)
+        {
+            PrefabUtility.InstantiatePrefab(existingTiles, parent);
+            Debug.Log("HeroKnightSandboxSetup: restored hand-painted TerrainTiles from " + TerrainTilesPrefabPath);
+            return;
+        }
+
         GameObject gridGO = new GameObject("TerrainTiles");
         gridGO.transform.SetParent(parent, false);
         Grid grid = gridGO.AddComponent<Grid>();
@@ -542,12 +578,10 @@ public static class HeroKnightSandboxSetup
         PlayerSettings.allowedAutorotateToLandscapeLeft = true;
         PlayerSettings.allowedAutorotateToLandscapeRight = true;
 
-        List<EditorBuildSettingsScene> scenes = EditorBuildSettings.scenes.ToList();
-        if (!scenes.Any(s => s.path == ScenePath))
-        {
-            scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
-            EditorBuildSettings.scenes = scenes.ToArray();
-        }
+        // LevelSelectSetup.RegisterAllScenes() is the single authoritative place for
+        // Build Settings scene order across the whole StartScreen/LevelSelect/level
+        // menu flow - see its own comment for why.
+        LevelSelectSetup.RegisterAllScenes();
 
         AssetDatabase.SaveAssets();
 
@@ -914,6 +948,11 @@ public static class HeroKnightSandboxSetup
 
         BuildMenuButton(panelGO.transform, "RestartButton", new Vector2(0f, -100f), "Restart")
             .AddComponent<RestartButton>();
+
+        GameObject levelSelectButton = BuildMenuButton(panelGO.transform, "LevelSelectButton", new Vector2(0f, -200f), "Level Select");
+        var levelSelectSO = new SerializedObject(levelSelectButton.AddComponent<LoadSceneButton>());
+        levelSelectSO.FindProperty("sceneName").stringValue = "LevelSelect";
+        levelSelectSO.ApplyModifiedPropertiesWithoutUndo();
 
         panelGO.SetActive(false);
         return panelGO;
