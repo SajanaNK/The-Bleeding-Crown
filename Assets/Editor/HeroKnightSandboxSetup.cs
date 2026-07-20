@@ -4,8 +4,10 @@ using Cinemachine;
 using HeroKnightSandbox;
 using HeroKnightSandbox.Enemy;
 using HeroKnightSandbox.Input;
+using HeroKnightSandbox.Objectives;
 using HeroKnightSandbox.Sensors;
 using HeroKnightSandbox.UI;
+using TMPro;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
@@ -770,6 +772,124 @@ public static class HeroKnightSandboxSetup
         instance.transform.position = new Vector3(x, surfaceY + sr.sprite.bounds.extents.y, 0f);
     }
 
+    [MenuItem("HeroKnightSandbox/10 Build Objectives")]
+    public static void BuildObjectives()
+    {
+        GameObject terrain = GameObject.Find("Terrain");
+        if (terrain == null)
+        {
+            throw new System.Exception("Terrain instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        GameObject canvas = GameObject.Find("Canvas");
+        if (canvas == null)
+        {
+            throw new System.Exception("Canvas instance not found in the open scene - run '3 Build Scene' first");
+        }
+
+        // Destroy-and-recreate (see CreateEnemy's own comment on this convention) so a
+        // rerun never leaves stale duplicate objectives instances alongside fresh ones.
+        GameObject existingController = GameObject.Find("ObjectivesController");
+        if (existingController != null)
+        {
+            Object.DestroyImmediate(existingController);
+        }
+
+        Transform existingGoalZone = terrain.transform.Find("GoalZone");
+        if (existingGoalZone != null)
+        {
+            Object.DestroyImmediate(existingGoalZone.gameObject);
+        }
+
+        GameObject existingHUD = GameObject.Find("ObjectivesHUD");
+        if (existingHUD != null)
+        {
+            Object.DestroyImmediate(existingHUD);
+        }
+
+        GameObject controllerGO = new GameObject("ObjectivesController");
+        controllerGO.AddComponent<ObjectivesController>();
+
+        // Just past the right edge of LedgePlatform (center 25, size 6x1, top y=6 - see
+        // BuildScene()), spanning y=5..8 so it's only reachable after the ledge climb,
+        // not by walking underneath at ground level.
+        GameObject goalZoneGO = new GameObject("GoalZone");
+        goalZoneGO.transform.SetParent(terrain.transform, false);
+        goalZoneGO.transform.position = new Vector3(28f, 6.5f, 0f);
+        BoxCollider2D goalZoneCollider = goalZoneGO.AddComponent<BoxCollider2D>();
+        goalZoneCollider.isTrigger = true;
+        goalZoneCollider.size = new Vector2(2f, 3f);
+        goalZoneGO.AddComponent<GoalZoneTrigger>();
+
+        GameObject hudGO = new GameObject("ObjectivesHUD");
+        hudGO.transform.SetParent(canvas.transform, false);
+
+        TextMeshProUGUI enemiesLine = BuildHUDLine(hudGO.transform, "EnemiesLine", new Vector2(20f, -20f));
+        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -50f));
+        GameObject completePanel = BuildCompletePanel(canvas.transform);
+
+        ObjectivesHUD hud = hudGO.AddComponent<ObjectivesHUD>();
+        var hudSO = new SerializedObject(hud);
+        hudSO.FindProperty("enemiesLine").objectReferenceValue = enemiesLine;
+        hudSO.FindProperty("goalLine").objectReferenceValue = goalLine;
+        hudSO.FindProperty("completePanel").objectReferenceValue = completePanel;
+        hudSO.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+
+        Debug.Log("HeroKnightSandboxSetup: objectives built");
+    }
+
+    private static TextMeshProUGUI BuildHUDLine(Transform parent, string name, Vector2 anchoredPos)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = new Vector2(400f, 30f);
+
+        TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
+        text.fontSize = 24f;
+        text.color = Color.white;
+        text.text = name;
+
+        return text;
+    }
+
+    private static GameObject BuildCompletePanel(Transform canvasTransform)
+    {
+        GameObject panelGO = new GameObject("CompletePanel");
+        panelGO.transform.SetParent(canvasTransform, false);
+        RectTransform panelRT = panelGO.AddComponent<RectTransform>();
+        panelRT.anchorMin = Vector2.zero;
+        panelRT.anchorMax = Vector2.one;
+        panelRT.offsetMin = Vector2.zero;
+        panelRT.offsetMax = Vector2.zero;
+        Image dim = panelGO.AddComponent<Image>();
+        dim.color = new Color(0f, 0f, 0f, 0.6f);
+
+        GameObject textGO = new GameObject("CompleteText");
+        textGO.transform.SetParent(panelGO.transform, false);
+        RectTransform textRT = textGO.AddComponent<RectTransform>();
+        textRT.anchorMin = new Vector2(0.5f, 0.5f);
+        textRT.anchorMax = new Vector2(0.5f, 0.5f);
+        textRT.pivot = new Vector2(0.5f, 0.5f);
+        textRT.anchoredPosition = Vector2.zero;
+        textRT.sizeDelta = new Vector2(800f, 200f);
+
+        TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.fontSize = 64f;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = Color.white;
+        text.text = "Sandbox Complete!";
+
+        panelGO.SetActive(false);
+        return panelGO;
+    }
+
     [MenuItem("HeroKnightSandbox/Run All")]
     public static void RunAll()
     {
@@ -782,6 +902,7 @@ public static class HeroKnightSandboxSetup
         BuildEnemies();
         BuildHeavyEnemy();
         BuildRangedEnemy();
+        BuildObjectives();
     }
 }
 }
