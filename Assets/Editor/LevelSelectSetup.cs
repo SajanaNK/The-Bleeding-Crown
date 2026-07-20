@@ -64,6 +64,9 @@ public static class LevelSelectSetup
         titleText.fontSize = 72f;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.color = Color.white;
+        // PressStart2P's wider glyphs were wrapping this onto two lines at 1000 units -
+        // see HeroKnightSandboxSetup.BuildHUDLine()'s matching comment.
+        titleText.enableWordWrapping = false;
         titleText.text = "Select Level";
 
         BuildLevelButton(canvasGO.transform, new Vector2(0f, 40f), "Level 1", "HeroKnightSandbox");
@@ -107,13 +110,16 @@ public static class LevelSelectSetup
         RectTransform textRT = textGO.AddComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = Vector2.zero;
-        textRT.offsetMax = Vector2.zero;
+        textRT.offsetMin = new Vector2(12f, 12f);
+        textRT.offsetMax = new Vector2(-12f, -12f);
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
         text.font = UIFont;
         text.fontSize = 42f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
+        // PressStart2P's wider glyphs were wrapping "Level 1"/"Level 2" onto two lines -
+        // see HeroKnightSandboxSetup.BuildHUDLine()'s matching comment.
+        text.enableWordWrapping = false;
         text.text = label;
 
         return buttonGO;

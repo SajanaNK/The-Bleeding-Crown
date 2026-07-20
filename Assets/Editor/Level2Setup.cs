@@ -626,7 +626,7 @@ public static class Level2Setup
         buttonRT.anchorMax = new Vector2(0.5f, 0.5f);
         buttonRT.pivot = new Vector2(0.5f, 0.5f);
         buttonRT.anchoredPosition = anchoredPos;
-        buttonRT.sizeDelta = new Vector2(240f, 70f);
+        buttonRT.sizeDelta = new Vector2(500f, 70f);
         Image buttonImage = buttonGO.AddComponent<Image>();
         buttonImage.color = new Color(1f, 1f, 1f, 0.85f);
         buttonGO.AddComponent<Button>();
@@ -636,13 +636,16 @@ public static class Level2Setup
         RectTransform textRT = textGO.AddComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = Vector2.zero;
-        textRT.offsetMax = Vector2.zero;
+        textRT.offsetMin = new Vector2(12f, 12f);
+        textRT.offsetMax = new Vector2(-12f, -12f);
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
         text.font = UIFont;
-        text.fontSize = 36f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
+        // PressStart2P is monospace with a full-em advance per glyph - see
+        // HeroKnightSandboxSetup.BuildMenuButton()'s matching comment for the math.
+        text.enableWordWrapping = false;
+        text.fontSize = 18f;
         text.text = label;
 
         return buttonGO;

@@ -989,7 +989,7 @@ public static class HeroKnightSandboxSetup
         buttonRT.anchorMax = new Vector2(0.5f, 0.5f);
         buttonRT.pivot = new Vector2(0.5f, 0.5f);
         buttonRT.anchoredPosition = anchoredPos;
-        buttonRT.sizeDelta = new Vector2(240f, 70f);
+        buttonRT.sizeDelta = new Vector2(500f, 70f);
         Image buttonImage = buttonGO.AddComponent<Image>();
         buttonImage.color = new Color(1f, 1f, 1f, 0.85f);
         buttonGO.AddComponent<Button>();
@@ -999,13 +999,22 @@ public static class HeroKnightSandboxSetup
         RectTransform textRT = textGO.AddComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = Vector2.zero;
-        textRT.offsetMax = Vector2.zero;
+        textRT.offsetMin = new Vector2(12f, 12f);
+        textRT.offsetMax = new Vector2(-12f, -12f);
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
         text.font = UIFont;
-        text.fontSize = 36f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
+        // PressStart2P is monospace with a full-em advance per glyph (confirmed in the
+        // font asset: m_HorizontalAdvance 51 at pointSize 51, a 1:1 ratio) - each
+        // character costs roughly its own fontSize in width. The two earlier attempts
+        // (340w/20pt fixed, then auto-sizing down to a 14pt floor) both still needed
+        // more width than "Quit to Start Screen" (21 characters) had available, so the
+        // overflow silently rendered off the white button and onto the dark panel
+        // behind it - invisible, since the label color is black. 500w/18pt leaves
+        // comfortable margin (21 * 18 = 378, well under the ~476 usable width).
+        text.enableWordWrapping = false;
+        text.fontSize = 18f;
         text.text = label;
 
         return buttonGO;

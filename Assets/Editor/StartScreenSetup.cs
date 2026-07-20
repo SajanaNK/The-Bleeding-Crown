@@ -99,13 +99,16 @@ public static class StartScreenSetup
         RectTransform textRT = textGO.AddComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = Vector2.zero;
-        textRT.offsetMax = Vector2.zero;
+        textRT.offsetMin = new Vector2(12f, 12f);
+        textRT.offsetMax = new Vector2(-12f, -12f);
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
         text.font = UIFont;
         text.fontSize = 42f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
+        // PressStart2P's wider glyphs can wrap short labels onto two lines - see
+        // HeroKnightSandboxSetup.BuildHUDLine()'s matching comment.
+        text.enableWordWrapping = false;
         text.text = label;
 
         return buttonGO;
