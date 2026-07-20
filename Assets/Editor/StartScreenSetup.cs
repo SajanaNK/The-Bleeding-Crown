@@ -18,6 +18,9 @@ public static class StartScreenSetup
 {
     private const string ScenePath = "Assets/Scenes/StartScreen.unity";
     private const string LevelSelectSceneName = "LevelSelect";
+    private const string UIFontPath = "Assets/Mod Assets/Mod Resources/Fonts/PressStart2P-Regular SDF.asset";
+
+    private static TMP_FontAsset UIFont => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(UIFontPath);
 
     [MenuItem("HeroKnightSandbox/11 Build Start Screen")]
     public static void BuildStartScreen()
@@ -57,6 +60,7 @@ public static class StartScreenSetup
         titleRT.anchoredPosition = new Vector2(0f, 200f);
         titleRT.sizeDelta = new Vector2(1000f, 200f);
         TextMeshProUGUI titleText = titleGO.AddComponent<TextMeshProUGUI>();
+        titleText.font = UIFont;
         titleText.fontSize = 96f;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.color = Color.white;
@@ -98,6 +102,7 @@ public static class StartScreenSetup
         textRT.offsetMin = Vector2.zero;
         textRT.offsetMax = Vector2.zero;
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 42f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;

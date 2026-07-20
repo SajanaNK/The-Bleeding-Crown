@@ -76,6 +76,9 @@ public static class HeroKnightSandboxSetup
     private const string PlayerHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUI.prefab";
     private const string EnemyHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUIWorldCanvas.prefab";
     private const string TerrainTilesPrefabPath = "Assets/Prefabs/Level1_TerrainTiles.prefab";
+    private const string UIFontPath = "Assets/Mod Assets/Mod Resources/Fonts/PressStart2P-Regular SDF.asset";
+
+    private static TMP_FontAsset UIFont => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(UIFontPath);
 
     [MenuItem("HeroKnightSandbox/1 Build Prefab")]
     public static void BuildPrefab()
@@ -878,11 +881,21 @@ public static class HeroKnightSandboxSetup
 
         GameObject hudGO = new GameObject("ObjectivesHUD");
         hudGO.transform.SetParent(canvas.transform, false);
+        // A plain Transform here breaks anchoring for its RectTransform children below -
+        // Unity's UI layout needs every ancestor up to the Canvas to be a RectTransform to
+        // correctly resolve anchored positions, otherwise children land in the wrong place
+        // entirely (confirmed live: EnemiesLine/GoalLine rendered down near ground level
+        // instead of their intended top-left HUD position).
+        RectTransform hudRT = hudGO.AddComponent<RectTransform>();
+        hudRT.anchorMin = Vector2.zero;
+        hudRT.anchorMax = Vector2.one;
+        hudRT.offsetMin = Vector2.zero;
+        hudRT.offsetMax = Vector2.zero;
 
         // Starts at y=-60 rather than -20 to leave room above for the player health
         // bar built by BuildPlayerHealthBar().
         TextMeshProUGUI enemiesLine = BuildHUDLine(hudGO.transform, "EnemiesLine", new Vector2(20f, -60f));
-        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -90f));
+        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -105f));
         GameObject completePanel = BuildCompletePanel(canvas.transform);
 
         ObjectivesHUD hud = hudGO.AddComponent<ObjectivesHUD>();
@@ -909,11 +922,16 @@ public static class HeroKnightSandboxSetup
         rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot = new Vector2(0f, 1f);
         rt.anchoredPosition = anchoredPos;
-        rt.sizeDelta = new Vector2(400f, 30f);
+        rt.sizeDelta = new Vector2(600f, 40f);
 
         TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 24f;
         text.color = Color.white;
+        // PressStart2P's glyphs are noticeably wider than the default font - word wrap
+        // was breaking "Defeat enemies: 0/4" and "Reach the end: [ ]" each onto two
+        // lines instead of one, at the box width these were originally sized for.
+        text.enableWordWrapping = false;
         text.text = name;
 
         return text;
@@ -941,6 +959,7 @@ public static class HeroKnightSandboxSetup
         textRT.sizeDelta = new Vector2(800f, 200f);
 
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 64f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
@@ -983,6 +1002,7 @@ public static class HeroKnightSandboxSetup
         textRT.offsetMin = Vector2.zero;
         textRT.offsetMax = Vector2.zero;
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 36f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
@@ -1114,6 +1134,7 @@ public static class HeroKnightSandboxSetup
         textRT.anchoredPosition = new Vector2(0f, 180f);
         textRT.sizeDelta = new Vector2(800f, 150f);
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 64f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;

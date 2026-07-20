@@ -18,6 +18,9 @@ namespace HeroKnightSandbox.EditorTools
 public static class LevelSelectSetup
 {
     private const string ScenePath = "Assets/Scenes/LevelSelect.unity";
+    private const string UIFontPath = "Assets/Mod Assets/Mod Resources/Fonts/PressStart2P-Regular SDF.asset";
+
+    private static TMP_FontAsset UIFont => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(UIFontPath);
 
     [MenuItem("HeroKnightSandbox/14 Build Level Select")]
     public static void BuildLevelSelect()
@@ -57,6 +60,7 @@ public static class LevelSelectSetup
         titleRT.anchoredPosition = new Vector2(0f, 220f);
         titleRT.sizeDelta = new Vector2(1000f, 150f);
         TextMeshProUGUI titleText = titleGO.AddComponent<TextMeshProUGUI>();
+        titleText.font = UIFont;
         titleText.fontSize = 72f;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.color = Color.white;
@@ -106,6 +110,7 @@ public static class LevelSelectSetup
         textRT.offsetMin = Vector2.zero;
         textRT.offsetMax = Vector2.zero;
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 42f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;

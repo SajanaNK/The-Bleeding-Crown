@@ -46,6 +46,9 @@ public static class Level2Setup
     private const string ConfettiPrefabPath = "Assets/Mod Assets/Particle Prefabs/ConfettiCelebration.prefab";
     private const string PlayerHealthBarPrefabPath = "Assets/CodeMonkey/HealthSystem/Prefabs/pfHealthBarUI.prefab";
     private const string TerrainTilesPrefabPath = "Assets/Prefabs/Level2_TerrainTiles.prefab";
+    private const string UIFontPath = "Assets/Mod Assets/Mod Resources/Fonts/PressStart2P-Regular SDF.asset";
+
+    private static TMP_FontAsset UIFont => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(UIFontPath);
 
     [MenuItem("HeroKnightSandbox/20 Build Level 2 Scene")]
     public static void BuildScene()
@@ -524,9 +527,16 @@ public static class Level2Setup
 
         GameObject hudGO = new GameObject("ObjectivesHUD");
         hudGO.transform.SetParent(canvas.transform, false);
+        // A plain Transform here breaks anchoring for its RectTransform children below -
+        // see HeroKnightSandboxSetup.BuildObjectives()'s matching comment.
+        RectTransform hudRT = hudGO.AddComponent<RectTransform>();
+        hudRT.anchorMin = Vector2.zero;
+        hudRT.anchorMax = Vector2.one;
+        hudRT.offsetMin = Vector2.zero;
+        hudRT.offsetMax = Vector2.zero;
 
         TextMeshProUGUI enemiesLine = BuildHUDLine(hudGO.transform, "EnemiesLine", new Vector2(20f, -60f));
-        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -90f));
+        TextMeshProUGUI goalLine = BuildHUDLine(hudGO.transform, "GoalLine", new Vector2(20f, -105f));
         GameObject completePanel = BuildCompletePanel(canvas.transform);
 
         ObjectivesHUD hud = hudGO.AddComponent<ObjectivesHUD>();
@@ -553,11 +563,15 @@ public static class Level2Setup
         rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot = new Vector2(0f, 1f);
         rt.anchoredPosition = anchoredPos;
-        rt.sizeDelta = new Vector2(400f, 30f);
+        rt.sizeDelta = new Vector2(600f, 40f);
 
         TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 24f;
         text.color = Color.white;
+        // PressStart2P's glyphs are noticeably wider than the default font - see
+        // HeroKnightSandboxSetup.BuildHUDLine()'s matching comment.
+        text.enableWordWrapping = false;
         text.text = name;
 
         return text;
@@ -585,6 +599,7 @@ public static class Level2Setup
         textRT.sizeDelta = new Vector2(800f, 200f);
 
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 64f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
@@ -624,6 +639,7 @@ public static class Level2Setup
         textRT.offsetMin = Vector2.zero;
         textRT.offsetMax = Vector2.zero;
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 36f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
@@ -746,6 +762,7 @@ public static class Level2Setup
         textRT.anchoredPosition = new Vector2(0f, 180f);
         textRT.sizeDelta = new Vector2(800f, 150f);
         TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
+        text.font = UIFont;
         text.fontSize = 64f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
