@@ -122,7 +122,7 @@ namespace HeroKnightSandbox
 
         public void TakeDamage(int amount)
         {
-            if (context.IsInvulnerable || currentState == Hurt || currentState == Death)
+            if (context.IsInvulnerable || currentState == Hurt || currentState == Death || currentState == Block)
             {
                 return;
             }
