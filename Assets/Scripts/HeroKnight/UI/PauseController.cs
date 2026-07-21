@@ -46,7 +46,7 @@ namespace HeroKnightSandbox.UI
         {
             isPaused = paused;
             Time.timeScale = paused ? 0f : 1f;
-            pausePanel.SetActive(paused);
+            pausePanel.GetComponent<FadePanel>().SetVisible(paused);
         }
     }
 }

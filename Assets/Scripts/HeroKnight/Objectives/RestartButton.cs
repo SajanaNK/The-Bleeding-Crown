@@ -1,3 +1,4 @@
+using HeroKnightSandbox.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -19,10 +20,19 @@ namespace HeroKnightSandbox.Objectives
 
         private void Restart()
         {
+            string sceneName = SceneManager.GetActiveScene().name;
+            if (ScreenTransition.Instance != null)
+            {
+                ScreenTransition.Instance.LoadScene(sceneName);
+                return;
+            }
+
+            // Fallback for a scene that hasn't been rebuilt since ScreenTransition was
+            // added, so navigation never silently breaks.
             // Time.timeScale persists across scene loads, so if this is clicked from the
             // Pause menu (timeScale 0) the reloaded scene would start out frozen.
             Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            SceneManager.LoadScene(sceneName);
         }
     }
 }

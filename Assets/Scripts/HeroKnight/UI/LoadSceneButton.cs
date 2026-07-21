@@ -20,6 +20,14 @@ namespace HeroKnightSandbox.UI
 
         private void Load()
         {
+            if (ScreenTransition.Instance != null)
+            {
+                ScreenTransition.Instance.LoadScene(sceneName);
+                return;
+            }
+
+            // Fallback for a scene that hasn't been rebuilt since ScreenTransition was
+            // added, so navigation never silently breaks.
             // Time.timeScale persists across scene loads, so if this is clicked from a
             // paused state (timeScale 0) the loaded scene would start out frozen.
             Time.timeScale = 1f;
