@@ -1,3 +1,4 @@
+using HeroKnightSandbox.Audio;
 using UnityEngine;
 
 namespace HeroKnightSandbox.States
@@ -12,6 +13,7 @@ namespace HeroKnightSandbox.States
             Context.Animator.SetBool("Grounded", false);
             Context.Body.velocity = new Vector2(Context.Body.velocity.x, Context.JumpForce);
             Context.GroundSensor.Disable(0.2f);
+            RandomAudioPlayer.PlayExclusive(Context.AudioSource, Context.JumpClips);
         }
 
         public override void Tick()

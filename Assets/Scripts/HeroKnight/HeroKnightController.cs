@@ -1,3 +1,4 @@
+using Cinemachine;
 using CodeMonkey.HealthSystemCM;
 using HeroKnightSandbox.Input;
 using HeroKnightSandbox.Sensors;
@@ -9,9 +10,14 @@ namespace HeroKnightSandbox
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(SpriteRenderer))]
+    [RequireComponent(typeof(AudioSource))]
     public class HeroKnightController : MonoBehaviour, IGetHealthSystem
     {
         [SerializeField] private TouchHeroKnightInput input;
+        [SerializeField] private AudioClip[] attackClips;
+        [SerializeField] private AudioClip[] blockClips;
+        [SerializeField] private AudioClip[] jumpClips;
+        [SerializeField] private AudioClip[] footstepClips;
         // Fully qualified rather than relying on the `using HeroKnightSandbox.Sensors;`
         // import above: the vendor asset pack's Demo/Sensor_HeroKnight.cs declares a
         // same-named class directly in the global namespace, and C# always resolves a
@@ -27,6 +33,20 @@ namespace HeroKnightSandbox
         [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight wallSensorL2;
         [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight ledgeSensorR;
         [SerializeField] private HeroKnightSandbox.Sensors.Sensor_HeroKnight ledgeSensorL;
+        // The vendor asset pack's HeroKnight_WallSlide.anim has an AE_SlideDust
+        // AnimationEvent baked in partway through its loop - this is the vendor's own
+        // SlideDust.prefab (self-destroying via its own animation's destroyEvent), never
+        // removed when this project's custom state machine replaced the vendor's
+        // monolithic Demo/HeroKnight.cs script. Without a receiver, Unity logs "has no
+        // receiver" every time the clip plays.
+        [SerializeField] private GameObject slideDustPrefab;
+        // Only used to notify Cinemachine of the instant teleport in Respawn() below -
+        // without this, CinemachineFramingTransposer reads the sudden death-site-to-
+        // spawn-position jump as the target actually moving that far in one frame and
+        // spends the next several frames rapidly panning/whipping the camera across the
+        // whole level to "catch up", which reads as screen glitching and drags in enough
+        // off-screen geometry at once to cause an FPS drop.
+        [SerializeField] private CinemachineVirtualCamera followCamera;
 
         private HeroKnightContext context;
         // Fully qualified: see the matching comment on the sensor fields above. A newly
@@ -64,6 +84,11 @@ namespace HeroKnightSandbox
                 SpriteRenderer = GetComponent<SpriteRenderer>(),
                 Transform = transform,
                 Controls = input,
+                AudioSource = GetComponent<AudioSource>(),
+                AttackClips = attackClips,
+                BlockClips = blockClips,
+                JumpClips = jumpClips,
+                FootstepClips = footstepClips,
                 GroundSensor = groundSensor,
                 WallSensorR1 = wallSensorR1,
                 WallSensorR2 = wallSensorR2,
@@ -140,10 +165,15 @@ namespace HeroKnightSandbox
 
         public void Respawn()
         {
+            Vector3 previousPosition = context.Transform.position;
             context.Health.HealComplete();
             context.Body.bodyType = RigidbodyType2D.Dynamic;
             context.Body.velocity = Vector2.zero;
             context.Transform.position = spawnPosition;
+            if (followCamera != null)
+            {
+                followCamera.OnTargetObjectWarped(context.Transform, spawnPosition - previousPosition);
+            }
             context.InvulnerabilityTimer = context.InvulnerabilityDuration;
             // The vendor Animator Controller's Death state has no outgoing transitions of
             // its own (m_Transitions: [] - it's only ever meant to be a dead end), so
@@ -153,6 +183,23 @@ namespace HeroKnightSandbox
             // same fix as LedgeGrab's missing exit transition.
             context.Animator.SetTrigger("Respawn");
             ChangeState(Idle);
+        }
+
+        // Animation Event, fired by HeroKnight_WallSlide.anim partway through its loop -
+        // matches the vendor Demo/HeroKnight.cs's own AE_SlideDust spawn-position/flip
+        // logic, ported to this project's Context-held facing direction and sensors.
+        private void AE_SlideDust()
+        {
+            if (slideDustPrefab == null)
+            {
+                return;
+            }
+
+            HeroKnightSandbox.Sensors.Sensor_HeroKnight sensor =
+                context.FacingDirection == 1 ? context.WallSensorR2 : context.WallSensorL2;
+
+            GameObject dust = Instantiate(slideDustPrefab, sensor.transform.position, transform.localRotation);
+            dust.transform.localScale = new Vector3(context.FacingDirection, 1f, 1f);
         }
     }
 }

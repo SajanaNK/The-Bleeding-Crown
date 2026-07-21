@@ -16,6 +16,11 @@ namespace HeroKnightSandbox
         public SpriteRenderer SpriteRenderer;
         public Transform Transform;
         public IHeroKnightInput Controls;
+        public AudioSource AudioSource;
+        public AudioClip[] AttackClips;
+        public AudioClip[] BlockClips;
+        public AudioClip[] JumpClips;
+        public AudioClip[] FootstepClips;
 
         // Fully qualified: see the matching comment in HeroKnightController.cs — the
         // vendor's global-scope Sensor_HeroKnight class shadows the `using
@@ -47,6 +52,7 @@ namespace HeroKnightSandbox
         public float HurtDuration = 0.3f;
         public float InvulnerabilityTimer = 0f;
         public float DeathDuration = 1.0f;
+        public float FootstepInterval = 0.35f;
 
         public bool IsInvulnerable => InvulnerabilityTimer > 0f;
 

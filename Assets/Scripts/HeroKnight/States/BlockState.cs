@@ -1,3 +1,4 @@
+using HeroKnightSandbox.Audio;
 using UnityEngine;
 
 namespace HeroKnightSandbox.States
@@ -11,6 +12,10 @@ namespace HeroKnightSandbox.States
             Context.SetVelocityX(0f);
             Context.Animator.SetTrigger("Block");
             Context.Animator.SetBool("IdleBlock", true);
+            // Exclusive: player_block_3.mp3 runs 8s, long enough that rapidly toggling
+            // block would otherwise stack several full-length clips (the same bug
+            // footsteps had - see RandomAudioPlayer.PlayExclusive).
+            RandomAudioPlayer.PlayExclusive(Context.AudioSource, Context.BlockClips);
         }
 
         public override void Exit()

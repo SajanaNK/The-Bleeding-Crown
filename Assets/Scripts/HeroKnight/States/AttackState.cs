@@ -1,3 +1,4 @@
+using HeroKnightSandbox.Audio;
 using HeroKnightSandbox.Enemy;
 using UnityEngine;
 
@@ -25,6 +26,11 @@ namespace HeroKnightSandbox.States
 
             Context.Animator.SetTrigger("Attack" + Context.ComboCount);
             Context.TimeSinceAttack = 0f;
+            // Exclusive: attack clips run ~2s against a 0.25s combo window, so mashing
+            // through a combo piled up several full-length clips at once (the same bug
+            // footsteps/block had - see RandomAudioPlayer.PlayExclusive). Each new swing
+            // now cuts the previous swing's sound off instead of layering onto it.
+            RandomAudioPlayer.PlayExclusive(Context.AudioSource, Context.AttackClips);
         }
 
         public override void Tick()
