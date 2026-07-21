@@ -6,6 +6,13 @@ namespace Platformer.View
     /// Used to move a transform relative to the main camera position with a scale factor applied.
     /// This is used to implement parallax scrolling effects on different branches of gameobjects.
     /// </summary>
+    // Forces this LateUpdate to run after CinemachineBrain's own LateUpdate, which moves
+    // the actual Camera transform this reads. Unity doesn't guarantee ordering between
+    // two different scripts' LateUpdate at the default order (0), so without this a layer
+    // pinned 1:1 to the camera (movementScale (1,1,0), used as a skybox) visibly jitters
+    // whenever that ordering flips frame-to-frame between reading last frame's vs this
+    // frame's camera position.
+    [DefaultExecutionOrder(1000)]
     public class ParallaxLayer : MonoBehaviour
     {
         /// <summary>
