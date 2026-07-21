@@ -21,12 +21,21 @@ namespace HeroKnightSandbox.Enemy
         private float age;
 
         public static Projectile Spawn(Vector3 position, float direction, HeroKnightController target, int damage,
-            Sprite sprite = null, float speed = 6f, float hitRadius = 0.6f, float lifetime = 3f)
+            Sprite sprite = null, float speed = 6f, float hitRadius = 0.6f, float lifetime = 3f, float visualHeight = 0f)
         {
             GameObject go = new GameObject("Projectile");
             go.transform.position = position;
 
-            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            // Hit detection below compares this root transform's position to the
+            // target's - both enemy and player transforms sit at feet level, so the root
+            // stays there too rather than at visualHeight. Only the sprite is drawn
+            // higher, on a child, so the arrow looks like it left the bow at hand height
+            // without moving the logical/hit-check position it flies and hits at.
+            GameObject visualGO = new GameObject("Visual");
+            visualGO.transform.SetParent(go.transform, false);
+            visualGO.transform.localPosition = new Vector3(0f, visualHeight, 0f);
+
+            SpriteRenderer sr = visualGO.AddComponent<SpriteRenderer>();
             if (sprite != null)
             {
                 // Arrow.png (Assets/FlexUnit/2DMedievalWeaponPack) points right by

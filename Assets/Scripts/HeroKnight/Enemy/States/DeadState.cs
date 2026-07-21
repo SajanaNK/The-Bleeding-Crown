@@ -1,3 +1,4 @@
+using HeroKnightSandbox.Audio;
 using UnityEngine;
 
 namespace HeroKnightSandbox.Enemy
@@ -12,6 +13,7 @@ namespace HeroKnightSandbox.Enemy
         {
             timer = 0f;
             Context.Animator.SetTrigger("Death");
+            RandomAudioPlayer.Play(Context.AudioSource, Context.DeathClips);
         }
 
         public override void Tick()

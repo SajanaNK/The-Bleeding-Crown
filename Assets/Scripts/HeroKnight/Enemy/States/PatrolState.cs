@@ -49,7 +49,15 @@ namespace HeroKnightSandbox.Enemy
                 Context.Transform.localScale = scale;
             }
 
-            Context.Transform.position = new Vector3(target.x, target.y, Context.Transform.position.z);
+            // MoveTowards, not a hard position set: Patrol can be (re-)entered from Chase
+            // with this enemy well off the line entirely (it gave up the chase, or the
+            // player broke height tolerance by jumping) - assigning target directly
+            // teleported it back onto the line the instant Patrol took over. While already
+            // on the line (the common case) this closes the exact per-frame distance the
+            // phase advanced by, so normal patrol motion is unchanged.
+            Vector2 current = Context.Transform.position;
+            Vector2 next = Vector2.MoveTowards(current, target, Context.MoveSpeed * Time.deltaTime);
+            Context.Transform.position = new Vector3(next.x, next.y, Context.Transform.position.z);
 
             float distance = Vector2.Distance(Context.Transform.position, Context.Player.transform.position);
             if (Context.PlayerWithinHeight)

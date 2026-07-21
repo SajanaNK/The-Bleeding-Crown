@@ -14,6 +14,18 @@ namespace HeroKnightSandbox.Enemy
         public Platformer.Mechanics.PatrolPath PatrolPath;
         public HeroKnightController Player;
         public Sprite ProjectileSprite;
+        public AudioSource AudioSource;
+        public AudioClip[] AttackClips;
+        public AudioClip[] DeathClips;
+        // Visual-only offset for where Projectile draws its sprite (see Projectile.Spawn's
+        // visualHeight param) - both enemy and player Transforms sit at feet level, and
+        // Projectile's hit check compares its own (unoffset) root position against the
+        // player's, so this must never be added to the spawn position itself: doing that
+        // once moved the arrow's actual hitbox to chest height while the player's stayed
+        // at their feet, and it stopped landing any hits at all on flat ground. Purely
+        // cosmetic - makes the arrow look like it left the bow at hand height instead of
+        // skimming the ground.
+        public float ProjectileHeight = 0.65f;
 
         public HealthSystem Health;
         public float MoveSpeed = 2.0f;

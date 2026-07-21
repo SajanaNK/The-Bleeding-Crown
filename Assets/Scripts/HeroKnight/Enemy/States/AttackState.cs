@@ -1,3 +1,4 @@
+using HeroKnightSandbox.Audio;
 using UnityEngine;
 
 namespace HeroKnightSandbox.Enemy
@@ -22,6 +23,7 @@ namespace HeroKnightSandbox.Enemy
             timer = 0f;
             hasDealtDamage = false;
             Context.Animator.SetTrigger("Attack");
+            RandomAudioPlayer.Play(Context.AudioSource, Context.AttackClips);
         }
 
         public override void Tick()
@@ -40,7 +42,16 @@ namespace HeroKnightSandbox.Enemy
 
             if (timer >= Context.AttackWindup + Context.AttackCooldown)
             {
-                Controller.ChangeState(Controller.Patrol);
+                // Re-check distance rather than always falling back to Patrol - Patrol's
+                // phase-resync snaps this enemy's position onto its (small) patrol line the
+                // instant it re-enters, which yanked the enemy away from a player standing
+                // right next to it after every single swing (chase out, hit once, snap
+                // back, re-detect, repeat) - looked exactly like it could never leave its
+                // patrol area.
+                float distance = Vector2.Distance(Context.Transform.position, Context.Player.transform.position);
+                Controller.ChangeState(Context.PlayerWithinHeight && distance <= Context.DetectionRange
+                    ? Controller.Chase
+                    : Controller.Patrol);
             }
         }
     }

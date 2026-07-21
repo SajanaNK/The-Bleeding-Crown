@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace HeroKnightSandbox.Enemy
 {
+    [RequireComponent(typeof(AudioSource))]
     public class EnemyController : MonoBehaviour, IGetHealthSystem
     {
         [SerializeField] private HeroKnightController player;
@@ -25,7 +26,10 @@ namespace HeroKnightSandbox.Enemy
         // Default false, so existing melee prefab instances are unaffected.
         [SerializeField] private bool ranged;
         [SerializeField] private Sprite projectileSprite;
+        [SerializeField] private float projectileHeight = 0.65f;
         [SerializeField] private GameObject healthBarPrefab;
+        [SerializeField] private AudioClip[] attackClips;
+        [SerializeField] private AudioClip[] deathClips;
 
         private EnemyContext context;
         private EnemyState currentState;
@@ -45,6 +49,10 @@ namespace HeroKnightSandbox.Enemy
                 PatrolPath = patrolPath,
                 Player = player,
                 ProjectileSprite = projectileSprite,
+                ProjectileHeight = projectileHeight,
+                AudioSource = GetComponent<AudioSource>(),
+                AttackClips = attackClips,
+                DeathClips = deathClips,
                 MoveSpeed = moveSpeed,
                 AttackDamage = attackDamage,
                 AttackRange = attackRange,
