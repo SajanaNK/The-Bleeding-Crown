@@ -16,12 +16,22 @@ namespace CodeMonkey.HealthSystemCM {
         [SerializeField] private Image image;
 
 
+        [Tooltip("Fill units per second the bar animates towards its target, instead of snapping instantly")]
+        [SerializeField] private float fillSpeed = 1.5f;
+
         private HealthSystem healthSystem;
+        private float targetFillAmount;
 
 
         private void Start() {
             if (HealthSystem.TryGetHealthSystem(getHealthSystemGameObject, out HealthSystem healthSystem)) {
                 SetHealthSystem(healthSystem);
+            }
+        }
+
+        private void Update() {
+            if (image.fillAmount != targetFillAmount) {
+                image.fillAmount = Mathf.MoveTowards(image.fillAmount, targetFillAmount, fillSpeed * Time.deltaTime);
             }
         }
 
@@ -50,7 +60,7 @@ namespace CodeMonkey.HealthSystemCM {
         /// Update Health Bar using the Image fillAmount based on the current Health Amount
         /// </summary>
         private void UpdateHealthBar() {
-            image.fillAmount = healthSystem.GetHealthNormalized();
+            targetFillAmount = healthSystem.GetHealthNormalized();
         }
 
         /// <summary>
