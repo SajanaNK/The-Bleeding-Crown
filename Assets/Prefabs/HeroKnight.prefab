@@ -333,6 +333,7 @@ GameObject:
   - component: {fileID: 6942543344829877514}
   - component: {fileID: 4544735770741001570}
   - component: {fileID: 1984459504478324481}
+  - component: {fileID: 5811208120954569506}
   - component: {fileID: 1549484133232409619}
   m_Layer: 0
   m_Name: HeroKnight
@@ -508,6 +509,102 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.73, y: 1.2}
   m_EdgeRadius: 0
+--- !u!82 &5811208120954569506
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3228310276494634153}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!114 &1549484133232409619
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -521,6 +618,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   input: {fileID: 0}
+  attackClips:
+  - {fileID: 8300000, guid: 055e95aebc6e22d45863843a1beb57bb, type: 3}
+  - {fileID: 8300000, guid: e7d630ec4d976814c83e616ae0a312fe, type: 3}
+  - {fileID: 8300000, guid: b30572c0ce40055449f80c275d4cb41a, type: 3}
+  - {fileID: 8300000, guid: fcbadecadc470b1428124bdb76a121ef, type: 3}
+  - {fileID: 8300000, guid: fa9afbf9b9f29a24381439968e964036, type: 3}
+  blockClips:
+  - {fileID: 8300000, guid: 13eff7cc10b422143bfef5feb8a5c21a, type: 3}
+  - {fileID: 8300000, guid: 527d027e3a1cf06419205e6ecfd100cd, type: 3}
+  - {fileID: 8300000, guid: 828186d0dc949ab47b9bf062af135e72, type: 3}
+  jumpClips:
+  - {fileID: 8300000, guid: da66d5e399d232d41bfc7bb7f26280c2, type: 3}
+  - {fileID: 8300000, guid: 34f7a56625430c5408af827c874bfabc, type: 3}
+  footstepClips:
+  - {fileID: 8300000, guid: 7194fd2c60e23bc408a37a0c13339daf, type: 3}
+  - {fileID: 8300000, guid: 73b07f5bda9384e488d71431e115ae7e, type: 3}
   groundSensor: {fileID: 8865444003400499518}
   wallSensorR1: {fileID: 988920110237785544}
   wallSensorR2: {fileID: 8166209222714380064}
@@ -528,6 +641,9 @@ MonoBehaviour:
   wallSensorL2: {fileID: 7177357528836463161}
   ledgeSensorR: {fileID: 3733703609000752825}
   ledgeSensorL: {fileID: 4931467766690912619}
+  slideDustPrefab: {fileID: 1038168246061390451, guid: 8b8c8cc6774fb074cb9139cc631b108e,
+    type: 3}
+  followCamera: {fileID: 0}
 --- !u!1 &4293592281322219005
 GameObject:
   m_ObjectHideFlags: 0

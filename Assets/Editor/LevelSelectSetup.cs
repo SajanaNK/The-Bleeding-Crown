@@ -19,6 +19,7 @@ public static class LevelSelectSetup
 {
     private const string ScenePath = "Assets/Scenes/LevelSelect.unity";
     private const string UIFontPath = "Assets/Mod Assets/Mod Resources/Fonts/PressStart2P-Regular SDF.asset";
+    private const string LandscapeSkyboxPath = "Assets/Nature Landscapes Free Pixel Art/nature_3/origbig.png";
 
     private static TMP_FontAsset UIFont => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(UIFontPath);
 
@@ -34,6 +35,8 @@ public static class LevelSelectSetup
 
         GameObject camGO = new GameObject("Main Camera");
         Camera cam = camGO.AddComponent<Camera>();
+        // See StartScreenSetup's matching comment - EmptyScene has no built-in listener.
+        camGO.AddComponent<AudioListener>();
         cam.orthographic = true;
         cam.orthographicSize = 6f;
         cam.transform.position = new Vector3(0f, 0f, -10f);
@@ -50,6 +53,12 @@ public static class LevelSelectSetup
         GameObject eventSystemGO = new GameObject("EventSystem");
         eventSystemGO.AddComponent<EventSystem>();
         eventSystemGO.AddComponent<StandaloneInputModule>();
+
+        ScreenTransitionSetup.Build();
+        MusicSetup.Build(MusicSetup.StartingMusicPath, 1f);
+
+        // Background built first so title/buttons draw on top of it.
+        BuildBackground(canvasGO.transform);
 
         GameObject titleGO = new GameObject("Title");
         titleGO.transform.SetParent(canvasGO.transform, false);
@@ -68,6 +77,9 @@ public static class LevelSelectSetup
         // see HeroKnightSandboxSetup.BuildHUDLine()'s matching comment.
         titleText.enableWordWrapping = false;
         titleText.text = "Select Level";
+        Shadow titleShadow = titleGO.AddComponent<Shadow>();
+        titleShadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
+        titleShadow.effectDistance = new Vector2(3f, -3f);
 
         BuildLevelButton(canvasGO.transform, new Vector2(0f, 40f), "Level 1", "HeroKnightSandbox");
         BuildLevelButton(canvasGO.transform, new Vector2(0f, -60f), "Level 2", "Level2");
@@ -81,6 +93,41 @@ public static class LevelSelectSetup
         RegisterAllScenes();
 
         Debug.Log("HeroKnightSandboxSetup: level select built at " + ScenePath);
+    }
+
+    // Full-screen nature_3 mountain-valley art (same piece used for the Start Screen and
+    // in-level skyboxes, for visual continuity across the whole menu flow), with a light
+    // dark overlay on top so the title/buttons stay legible over the busy artwork.
+    private static void BuildBackground(Transform canvasTransform)
+    {
+        Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(LandscapeSkyboxPath);
+        if (sprite == null)
+        {
+            Debug.LogWarning("LevelSelectSetup: background sprite not found at " + LandscapeSkyboxPath);
+            return;
+        }
+
+        GameObject backdropGO = new GameObject("Backdrop");
+        backdropGO.transform.SetParent(canvasTransform, false);
+        RectTransform backdropRT = backdropGO.AddComponent<RectTransform>();
+        backdropRT.anchorMin = Vector2.zero;
+        backdropRT.anchorMax = Vector2.one;
+        backdropRT.offsetMin = Vector2.zero;
+        backdropRT.offsetMax = Vector2.zero;
+        Image backdropImage = backdropGO.AddComponent<Image>();
+        backdropImage.sprite = sprite;
+        backdropImage.raycastTarget = false;
+
+        GameObject dimGO = new GameObject("Dim");
+        dimGO.transform.SetParent(canvasTransform, false);
+        RectTransform dimRT = dimGO.AddComponent<RectTransform>();
+        dimRT.anchorMin = Vector2.zero;
+        dimRT.anchorMax = Vector2.one;
+        dimRT.offsetMin = Vector2.zero;
+        dimRT.offsetMax = Vector2.zero;
+        Image dimImage = dimGO.AddComponent<Image>();
+        dimImage.color = new Color(0f, 0f, 0f, 0.35f);
+        dimImage.raycastTarget = false;
     }
 
     private static void BuildLevelButton(Transform canvasTransform, Vector2 anchoredPos, string label, string sceneName)
@@ -101,9 +148,10 @@ public static class LevelSelectSetup
         buttonRT.pivot = new Vector2(0.5f, 0.5f);
         buttonRT.anchoredPosition = anchoredPos;
         buttonRT.sizeDelta = new Vector2(280f, 80f);
-        Image buttonImage = buttonGO.AddComponent<Image>();
-        buttonImage.color = new Color(1f, 1f, 1f, 0.85f);
-        buttonGO.AddComponent<Button>();
+        KenneyButtonSkin.Apply(buttonGO);
+        Shadow buttonShadow = buttonGO.AddComponent<Shadow>();
+        buttonShadow.effectColor = new Color(0f, 0f, 0f, 0.6f);
+        buttonShadow.effectDistance = new Vector2(3f, -3f);
 
         GameObject textGO = new GameObject("Text");
         textGO.transform.SetParent(buttonGO.transform, false);
@@ -116,7 +164,7 @@ public static class LevelSelectSetup
         text.font = UIFont;
         text.fontSize = 42f;
         text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.black;
+        text.color = new Color(0.92f, 0.85f, 0.70f);
         // PressStart2P's wider glyphs were wrapping "Level 1"/"Level 2" onto two lines -
         // see HeroKnightSandboxSetup.BuildHUDLine()'s matching comment.
         text.enableWordWrapping = false;
